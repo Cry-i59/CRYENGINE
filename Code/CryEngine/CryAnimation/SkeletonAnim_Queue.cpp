@@ -507,6 +507,15 @@ uint32 CSkeletonAnim::AnimationToQueue(const ModelAnimationHeader* pAnim, int nA
 	for (int i = 0; i < NUM_ANIMATION_USER_DATA_SLOTS; i++)
 		AnimOnStack.m_fUserData[i] = AnimParams.m_fUserData[i];
 
+	if (AnimParams.m_uniqueId == 0)
+	{
+		AnimOnStack.m_uniqueId = m_layers[AnimParams.m_nLayerID].m_transitionQueue.GetNextUniqueId();
+	}
+	else
+	{
+		AnimOnStack.m_uniqueId = AnimParams.m_uniqueId;
+	}
+	
 	AppendAnimationToQueue(AnimParams.m_nLayerID, AnimOnStack);
 
 	// only report when an animation fills the queue to prevent spam

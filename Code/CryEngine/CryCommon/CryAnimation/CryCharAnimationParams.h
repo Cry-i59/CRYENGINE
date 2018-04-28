@@ -427,6 +427,8 @@ struct CRY_ALIGN(8) CryCharAnimationParams
 	const SJointMask* m_pJointMask;
 #endif //!defined(USE_PROTOTYPE_ABS_BLENDING)
 
+	uint32 m_uniqueId;
+
 	void Serialize(TSerialize ser)
 	{
 		if (ser.GetSerializationTarget() != eST_Network)
@@ -657,7 +659,9 @@ public:
 	uint32 GetRemoveFromQueue() const { return m_DynFlags[0] & CA_REMOVE_FROM_QUEUE; }
 	uint32 GetEndOfCycle()      const { return m_DynFlags[0] & CA_EOC;               }
 	uint32 GetUseTimeWarping()  const { return m_DynFlags[0] & CA_TW_FLAG;           }
-
+	uint32 GetUniqueId() const { return m_uniqueId; }
+	f32 GetKeyTime() const { return m_fStartTime; }
+	
 protected:
 	SParametricSampler* m_pParametricSampler;
 
@@ -686,6 +690,8 @@ protected:
 	uint32 m_nUserToken;                              //!< Token specified by the animation calling code for it's own benefit.
 	f32 m_fUserData[NUM_ANIMATION_USER_DATA_SLOTS];   //!< A set of weights that are blended together just like the animation is, for calling code's benefit.
 
+	uint32 m_uniqueId;
+	
 #if defined(USE_PROTOTYPE_ABS_BLENDING)
 	const SJointMask* m_pJointMask;
 #endif //!defined(USE_PROTOTYPE_ABS_BLENDING)

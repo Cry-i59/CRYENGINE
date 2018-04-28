@@ -17,7 +17,8 @@ public://private:
 	f32                  m_fLayerTransitionWeight; //the current Blend-Weight during the transition of the layer. 1.0f == fully blended in / 0.0f == deactivated
 	f32                  m_fLayerBlendWeight;      //this is an "intensity" blend-weight that we set manually. You can use even negative Blend-Weights on this.
 	bool                 m_bActive;
-
+	uint                 m_lastUniqueId;
+	
 public:
 	CTransitionQueue();
 
@@ -33,6 +34,8 @@ public:
 	uint              GetAnimationCount() const { return uint(m_animations.size()); }
 	void              Clear();
 
+	uint GetNextUniqueId() { if (m_lastUniqueId + 1 > 10000) m_lastUniqueId = 0; return m_lastUniqueId++; }
+	
 public://private:
 	void UnloadAnimationAssets(int index);
 	void RemoveDelayConditions();
