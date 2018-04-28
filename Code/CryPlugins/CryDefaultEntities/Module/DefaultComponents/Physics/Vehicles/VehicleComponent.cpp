@@ -11,6 +11,19 @@ namespace Cry
 		{
 			// Functions
 			{
+				auto pFunction = SCHEMATYC_MAKE_ENV_FUNCTION(&CVehiclePhysicsComponent::Enable, "{0F1E2071-DB07-407B-B230-41D2C6B8CDDC}"_cry_guid, "Enable");
+				pFunction->SetDescription("Enables the physical collider");
+				pFunction->BindInput(1, 'enab', "enable");
+				componentScope.Register(pFunction);
+			}
+
+			{
+				auto pFunction = SCHEMATYC_MAKE_ENV_FUNCTION(&CVehiclePhysicsComponent::IsEnabled, "{C0A3AC39-3BF5-41D1-9280-60872FC0941D}"_cry_guid, "IsEnabled");
+				pFunction->SetDescription("Checks if the physical collider is enabled");
+				pFunction->BindOutput(0, 'enab', "enabled");
+				componentScope.Register(pFunction);
+			}
+			{
 				auto pFunction = SCHEMATYC_MAKE_ENV_FUNCTION(&CVehiclePhysicsComponent::UseHandbrake, "{12279EAD-5B52-49B0-B875-16195B04C103}"_cry_guid, "UseHandbrake");
 				pFunction->SetDescription("Activates the handbrake");
 				pFunction->BindInput(1, 'use', "Use", "Whether or not to use the handbrake");

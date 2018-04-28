@@ -134,6 +134,16 @@ namespace Cry
 				desc.AddMember(&CVehiclePhysicsComponent::m_bSendCollisionSignal, 'send', "SendCollisionSignal", "Send Collision Signal", "Whether or not this component should listen for collisions and report them", false);
 			}
 
+			void Enable(bool bEnable)
+			{
+ 				m_pEntity->EnablePhysics(bEnable);
+			}
+
+			bool IsEnabled() const
+			{
+				return m_pEntity->IsPhysicsEnabled();
+			}
+			
 			virtual void UseHandbrake(bool bSet) 
 			{
 				pe_action_drive driveAction;
