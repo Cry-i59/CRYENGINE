@@ -1,6 +1,9 @@
 # Mandatory plugin, contains entities required by the engine
 if (OPTION_ENGINE)
 	add_subdirectory (CryDefaultEntities/Module)
+endif()
+
+if (PLUGIN_SENSORSYSTEM)
 	add_subdirectory(CrySensorSystem/Module)
 endif()
 

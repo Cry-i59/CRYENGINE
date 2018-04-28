@@ -9,6 +9,18 @@ if(WIN64)
 	option(OPTION_RC "Include RC in the build" ON)
 endif()
 
+if (OPTION_ENGINE)
+	option(OPTION_AI "Build the AI system" ON)
+else()
+	option(OPTION_AI "Build the AI system" OFF)
+endif()
+
+if (OPTION_ENGINE)
+	option(OPTION_DRS "Build the DRS system" ON)
+else()
+	option(OPTION_DRS "Build the DRS system" OFF)
+endif()
+
 option(OPTION_DOXYGEN_EXAMPLES "Build Doxygen examples with the engine" OFF)
 
 if (WIN32 OR WIN64)
@@ -49,6 +61,8 @@ if(WIN32 OR WIN64)
 	else()
 		option(PLUGIN_VR_OPENVR "OpenVR support" OFF)
 	endif()
+	
+	option(PLUGIN_SENSORSYSTEM "Enable Sensor System" ON)
 
 	option(OPTION_CRYMONO "C# support" OFF)
 	
@@ -350,11 +364,23 @@ endif()
 if (OPTION_ENGINE)
 	add_subdirectory ("Code/CryEngine/Cry3DEngine")
 	add_subdirectory ("Code/CryEngine/CryAction")
+endif()
+	
+if (OPTION_AI)
 	add_subdirectory ("Code/CryEngine/CryAISystem")
+endif()
+	
+if (OPTION_ENGINE)
 	add_subdirectory ("Code/CryEngine/CryAnimation")
 	add_subdirectory ("Code/CryEngine/CryAudioSystem/Common")
 	add_subdirectory ("Code/CryEngine/CryAudioSystem")
+endif()
+	
+if (OPTION_DRS)
 	add_subdirectory ("Code/CryEngine/CryDynamicResponseSystem")
+endif()
+	
+if (OPTION_ENGINE)
 	add_subdirectory ("Code/CryEngine/CryEntitySystem")
 	add_subdirectory ("Code/CryEngine/CryFont")
 	add_subdirectory ("Code/CryEngine/CryInput")
