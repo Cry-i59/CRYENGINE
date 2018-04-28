@@ -12,13 +12,12 @@ namespace OpenVR {
 
 #define VRC_AXIS_THRESHOLD 0.5f
 
-#define MAPSYMBOL(EKI, DEV_KEY_ID, KEY_NAME, KEY_TYPE) m_symbols[EKI - OPENVR_BASE] = MapSymbol(DEV_KEY_ID, EKI, KEY_NAME, KEY_TYPE, 0);
+#define MAPSYMBOL(EKI, DEV_KEY_ID, KEY_NAME, KEY_TYPE) m_symbols[EKI - eKI_Motion_OpenVR_First] = MapSymbol(DEV_KEY_ID, EKI, KEY_NAME, KEY_TYPE, 0);
 
 // -------------------------------------------------------------------------
 Controller::Controller(vr::IVRSystem* pSystem)
 	: m_pSystem(pSystem)
 {
-	memset(&m_previousState, 0, sizeof(m_previousState));
 	memset(&m_state, 0, sizeof(m_state));
 
 	for (int iController = 0; iController < eHmdController_OpenVR_MaxNumOpenVRControllers; iController++)
@@ -85,8 +84,6 @@ void Controller::Update(vr::TrackedDeviceIndex_t controllerId, HmdTrackingState 
 
 	if ((index < eHmdController_OpenVR_MaxNumOpenVRControllers) && (m_state[index].packetNum != vrState.unPacketNum))
 	{
-		m_previousState[index] = m_state[index];
-
 		m_state[index].packetNum = vrState.unPacketNum;
 		m_state[index].buttonsPressed = vrState.ulButtonPressed;
 		m_state[index].buttonsTouched = vrState.ulButtonTouched;
@@ -94,70 +91,9 @@ void Controller::Update(vr::TrackedDeviceIndex_t controllerId, HmdTrackingState 
 		m_state[index].trigger = vrState.rAxis[vr::k_EButton_SteamVR_Trigger & 0x0f].x;
 		m_state[index].touchPad.x = vrState.rAxis[vr::k_EButton_SteamVR_Touchpad & 0x0f].x;
 		m_state[index].touchPad.y = vrState.rAxis[vr::k_EButton_SteamVR_Touchpad & 0x0f].y;
-
-		// Send button events (if necessary)
-		PostButtonIfChanged(index, eKI_Motion_OpenVR_System);
-		PostButtonIfChanged(index, eKI_Motion_OpenVR_ApplicationMenu);
-		PostButtonIfChanged(index, eKI_Motion_OpenVR_Grip);
-		PostButtonIfChanged(index, eKI_Motion_OpenVR_TriggerBtn);
-		PostButtonIfChanged(index, eKI_Motion_OpenVR_TouchPadBtn);
-
-		// send trigger event (if necessary)
-		if (m_state[index].trigger != m_previousState[index].trigger)
-		{
-			SInputEvent event;
-			SInputSymbol* pSymbol = m_symbols[eKI_Motion_OpenVR_Trigger - OPENVR_BASE];
-			pSymbol->ChangeEvent(m_state[index].trigger);
-			pSymbol->AssignTo(event);
-			event.deviceIndex = controllerId;
-			event.deviceType = eIDT_MotionController;
-			gEnv->pInput->PostInputEvent(event);
-		}
-
-		// send touch pad events (if necessary)
-		if (m_state[index].touchPad.x != m_previousState[index].touchPad.x)
-		{
-			SInputEvent event;
-			SInputSymbol* pSymbol = m_symbols[eKI_Motion_OpenVR_TouchPad_X - OPENVR_BASE];
-			pSymbol->ChangeEvent(m_state[index].touchPad.x);
-			pSymbol->AssignTo(event);
-			event.deviceIndex = controllerId;
-			event.deviceType = eIDT_MotionController;
-			gEnv->pInput->PostInputEvent(event);
-		}
-		if (m_state[index].touchPad.y != m_previousState[index].touchPad.y)
-		{
-			SInputEvent event;
-			SInputSymbol* pSymbol = m_symbols[eKI_Motion_OpenVR_TouchPad_Y - OPENVR_BASE];
-			pSymbol->ChangeEvent(m_state[index].touchPad.y);
-			pSymbol->AssignTo(event);
-			event.deviceIndex = controllerId;
-			event.deviceType = eIDT_MotionController;
-			gEnv->pInput->PostInputEvent(event);
-		}
 	}
 	m_state[index].localPose = localState;
 	m_state[index].nativePose = nativeState;
-}
-
-// -------------------------------------------------------------------------
-void Controller::PostButtonIfChanged(EHmdController controllerId, EKeyId keyID)
-{
-	SInputSymbol* pSymbol = m_symbols[keyID - OPENVR_BASE];
-	vr::EVRButtonId vrBtn = static_cast<vr::EVRButtonId>((pSymbol->devSpecId & (~OPENVR_SPECIAL)));
-
-	bool wasPressed = m_previousState[controllerId].Pressed(vrBtn);
-	bool isPressed = m_state[controllerId].Pressed(vrBtn);
-
-	if (isPressed != wasPressed)
-	{
-		SInputEvent event;
-		pSymbol->PressEvent(isPressed);
-		pSymbol->AssignTo(event);
-		event.deviceIndex = controllerId;
-		event.deviceType = eIDT_MotionController;
-		gEnv->pInput->PostInputEvent(event);
-	}
 }
 
 // -------------------------------------------------------------------------
@@ -248,7 +184,6 @@ void Controller::OnControllerConnect(vr::TrackedDeviceIndex_t controllerId)
 		{
 			m_controllerMapping[i] = controllerId;
 			m_state[i] = SControllerState();
-			m_previousState[i] = SControllerState();
 			added = true;
 			break;
 		}

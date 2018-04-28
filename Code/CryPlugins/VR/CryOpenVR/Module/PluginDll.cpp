@@ -5,6 +5,10 @@
 
 #include "OpenVRResources.h"
 #include "OpenVRDevice.h"
+#include "OpenVRControllerDevice.h"
+
+#include <CryGame/IGameFramework.h>
+#include <CryAction/IActionMapManager.h>
 
 // Included only once per DLL module.
 #include <CryCore/Platform/platform_impl.inl>
@@ -50,6 +54,16 @@ void CPlugin_OpenVR::OnSystemEvent(ESystemEvent event, UINT_PTR wparam, UINT_PTR
 				gEnv->pSystem->GetHmdManager()->RegisterDevice(GetName(), *pDevice);
 			}
 		}
+	break;
+	case ESYSTEM_EVENT_GAME_FRAMEWORK_INIT_DONE:
+	{
+		for (uint8 i = 0; i < eHmdController_OpenVR_MaxNumOpenVRControllers; ++i)
+		{
+			gEnv->pInput->AddInputDevice(new CControllerDevice(i));
+		}
+		
+		gEnv->pGameFramework->GetIActionMapManager()->AddInputDeviceMapping(eAID_MotionController, "motion");
+	}
 	break;
 	}
 }

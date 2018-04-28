@@ -352,7 +352,8 @@ enum EKeyId : uint32
 	eKI_EyeTracker_Y,
 
 	// OpenVR
-	eKI_Motion_OpenVR_System = KI_MOTION_BASE + eKI_Motion_OculusTouch_NUM_SYMBOLS,
+	eKI_Motion_OpenVR_First = KI_MOTION_BASE + eKI_Motion_OculusTouch_NUM_SYMBOLS,
+	eKI_Motion_OpenVR_System = eKI_Motion_OpenVR_First,
 	eKI_Motion_OpenVR_ApplicationMenu,
 	eKI_Motion_OpenVR_Grip,
 	eKI_Motion_OpenVR_TouchPad_X,
@@ -361,7 +362,7 @@ enum EKeyId : uint32
 	eKI_Motion_OpenVR_TriggerBtn,
 	eKI_Motion_OpenVR_TouchPadBtn,
 
-	eKI_Motion_OpenVR_NUM_SYMBOLS = eKI_Motion_OpenVR_TouchPadBtn - eKI_Motion_OpenVR_System + 1,
+	eKI_Motion_OpenVR_NUM_SYMBOLS = eKI_Motion_OpenVR_TouchPadBtn - eKI_Motion_OpenVR_First + 1,
 
 	// Normal inputs should be added above
 	// eKI_SYS_Commit and below will be ignored by input blocking functionality

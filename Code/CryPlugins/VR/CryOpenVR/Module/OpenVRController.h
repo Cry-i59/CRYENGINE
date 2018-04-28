@@ -5,8 +5,9 @@
 #include <CrySystem/VR/IHMDDevice.h>
 #include <CryInput/IInput.h>
 
+#include <array>
+
 #define OPENVR_SPECIAL (1 << 8)
-#define OPENVR_BASE    eKI_Motion_OpenVR_System
 
 namespace CryVR
 {
@@ -14,11 +15,13 @@ namespace OpenVR
 {
 class Controller : public IHmdController
 {
+	friend class CControllerDevice;
+	
 public:
 	// IHmdController
 	virtual bool                    IsConnected(EHmdController id) const override;
-	virtual bool                    IsButtonPressed(EHmdController controllerId, EKeyId id) const override { return (id < OPENVR_BASE || id > eKI_Motion_OpenVR_TouchPadBtn) ? false : (m_state[controllerId].buttonsPressed & vr::ButtonMaskFromId((vr::EVRButtonId)(m_symbols[id - OPENVR_BASE]->devSpecId & (~OPENVR_SPECIAL)))) > 0; }
-	virtual bool                    IsButtonTouched(EHmdController controllerId, EKeyId id) const override { return (id < OPENVR_BASE || id > eKI_Motion_OpenVR_TouchPadBtn) ? false : (m_state[controllerId].buttonsTouched & vr::ButtonMaskFromId((vr::EVRButtonId)(m_symbols[id - OPENVR_BASE]->devSpecId & (~OPENVR_SPECIAL)))) > 0; }
+	virtual bool                    IsButtonPressed(EHmdController controllerId, EKeyId id) const override { return (id < eKI_Motion_OpenVR_First || id > eKI_Motion_OpenVR_TouchPadBtn) ? false : (m_state[controllerId].buttonsPressed & vr::ButtonMaskFromId((vr::EVRButtonId)(m_symbols[id - eKI_Motion_OpenVR_First]->devSpecId & (~OPENVR_SPECIAL)))) > 0; }
+	virtual bool                    IsButtonTouched(EHmdController controllerId, EKeyId id) const override { return (id < eKI_Motion_OpenVR_First || id > eKI_Motion_OpenVR_TouchPadBtn) ? false : (m_state[controllerId].buttonsTouched & vr::ButtonMaskFromId((vr::EVRButtonId)(m_symbols[id - eKI_Motion_OpenVR_First]->devSpecId & (~OPENVR_SPECIAL)))) > 0; }
 	virtual bool                    IsGestureTriggered(EHmdController controllerId, EKeyId id) const override { return false; }                           // OpenVR does not have gesture support (yet?)
 	virtual float                   GetTriggerValue(EHmdController controllerId, EKeyId id) const override { return m_state[controllerId].trigger; }   // we only have one trigger => ignore trigger id
 	virtual Vec2                    GetThumbStickValue(EHmdController controllerId, EKeyId id)const override { return m_state[controllerId].touchPad; }  // we only have one 'stick' (/the touch pad) => ignore thumb stick id
@@ -42,8 +45,6 @@ private:
 	{
 		SControllerState()
 			: packetNum(0)
-			, buttonsPressed(0)
-			, buttonsTouched(0)
 			, trigger(0.0f)
 			, touchPad(ZERO)
 		{
@@ -52,8 +53,6 @@ private:
 		uint32           packetNum;
 		HmdTrackingState nativePose;
 		HmdTrackingState localPose;
-		uint64           buttonsPressed;
-		uint64           buttonsTouched;
 		float            trigger;
 		Vec2             touchPad;
 
@@ -74,12 +73,10 @@ private:
 	SInputSymbol* MapSymbol(uint32 deviceSpecificId, EKeyId keyId, const TKeyName& name, SInputSymbol::EType type, uint32 user);
 	void          OnControllerConnect(vr::TrackedDeviceIndex_t controllerId);
 	void          OnControllerDisconnect(vr::TrackedDeviceIndex_t controllerId);
-	void          PostButtonIfChanged(EHmdController controllerId, EKeyId keyID);
 	void          ClearState();
 
-	SInputSymbol*            m_symbols[eKI_Motion_OpenVR_NUM_SYMBOLS];
-	SControllerState         m_state[eHmdController_OpenVR_MaxNumOpenVRControllers],
-	                         m_previousState[eHmdController_OpenVR_MaxNumOpenVRControllers];
+	std::array<SInputSymbol*, eKI_Motion_OpenVR_NUM_SYMBOLS> m_symbols;
+	SControllerState         m_state[eHmdController_OpenVR_MaxNumOpenVRControllers];
 	vr::TrackedDeviceIndex_t m_controllerMapping[eHmdController_OpenVR_MaxNumOpenVRControllers];
 
 	vr::IVRSystem*           m_pSystem;
