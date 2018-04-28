@@ -175,7 +175,38 @@ namespace Cry
 
 				m_pEntity->UpdateComponentEventMask(this);
 			}
+			
+			virtual void Ragdollize()
+ 			{
+ 				SEntityPhysicalizeParams physParams;
+ 				physParams.type = PE_ARTICULATED;
+ 
+ 				physParams.mass = m_physics.m_mass;
+ 				physParams.nSlot = GetEntitySlotId();
+ 
+ 				physParams.bCopyJointVelocities = true;
+ 
+ 				m_pEntity->Physicalize(physParams);
+ 			}
 
+			virtual void ResizeMainCollider(const Vec3& size)
+			{
+				pe_player_dimensions playerDimensions;
+				playerDimensions.sizeCollider = size;
+
+				playerDimensions.bUseCapsule = m_physics.m_bCapsule ? 1 : 0;
+
+				playerDimensions.groundContactEps = m_physics.m_groundContactEps;
+				playerDimensions.heightPivot = 0.f;
+				playerDimensions.heightCollider = m_pTransform != nullptr ? m_pTransform->GetTranslation().z : 0.f;
+
+
+				if (IPhysicalEntity* pPhysicalEntity = m_pEntity->GetPhysicalEntity())
+				{
+					pPhysicalEntity->SetParams(&playerDimensions);
+				}
+			}
+			
 			struct SPhysics
 			{
 				inline bool operator==(const SPhysics &rhs) const { return 0 == memcmp(this, &rhs, sizeof(rhs)); }
