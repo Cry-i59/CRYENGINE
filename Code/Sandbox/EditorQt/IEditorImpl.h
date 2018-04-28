@@ -140,17 +140,6 @@ class CTaskManager;
 class CBackgroundTasksListener;
 }
 
-//! Callback class passed to PickObject.
-struct IPickObjectCallback
-{
-	//! Called when object picked.
-	virtual void OnPick(CBaseObject* picked) = 0;
-	//! Called when pick mode cancelled.
-	virtual void OnCancelPick() = 0;
-	//! Return true if specified object is pickable.
-	virtual bool OnPickFilter(CBaseObject* filterObject) { return true; };
-};
-
 class SANDBOX_API CEditorImpl : public IEditor, public ISystemEventListener
 {
 public:

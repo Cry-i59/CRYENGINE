@@ -30,8 +30,10 @@ public:
 	{
 		if (e.reason == PropertyActivationEvent::REASON_KEYBOARD)
 		{
+			e.tree->model()->rowAboutToBeChanged(this);
 			if (value_)
 				value_->Callback();
+			e.tree->model()->rowChanged(this);
 		}
 		return true;
 	}
@@ -68,10 +70,12 @@ public:
 			return;
 		if (widgetRect(tree).contains(point))
 		{
+			tree->model()->rowAboutToBeChanged(this);
 			pressed_ = false;
 			if (value_)
 				value_->Callback();
 			tree->revert();
+			tree->model()->rowChanged(this);
 		}
 	}
 	void setValueAndContext(const Serialization::SStruct& ser, Serialization::IArchive& ar) override

@@ -9,6 +9,7 @@
 #include <CrySerialization/Decorators/Resources.h>
 #include <CrySerialization/Decorators/ResourcesAudio.h>
 #include <CrySerialization/Decorators/ActionButton.h>
+#include <CrySerialization/Decorators/EntityPicker.h>
 
 #include <CrySchematyc/Reflection/TypeDesc.h>
 
@@ -293,6 +294,13 @@ inline void ReflectType(CTypeDesc<Serialization::FunctorActionButton<Functor>>& 
 	desc.SetGUID("B5329286-CC95-4A0D-8996-9FC19B445ACB"_cry_guid);
 	desc.SetLabel("Action");
 	desc.SetDescription("Triggers an action in native code");
+}
+
+inline void ReflectType(CTypeDesc<Serialization::EntityPickerButton>& desc)
+{
+	desc.SetGUID("{ACDC6C14-415D-477C-BB16-9EFA4E084DB8}"_cry_guid);
+	desc.SetLabel("Entity Picker");
+	desc.SetDescription("Picks one or more entities from the current level");
 }
 
 } // Schematyc

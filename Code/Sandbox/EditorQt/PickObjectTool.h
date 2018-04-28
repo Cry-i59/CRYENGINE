@@ -7,6 +7,9 @@
 	#pragma once
 #endif
 
+#include "IObjectManager.h"
+#include "IEditor.h"
+
 //////////////////////////////////////////////////////////////////////////
 class CPickObjectTool : public CEditTool
 {
