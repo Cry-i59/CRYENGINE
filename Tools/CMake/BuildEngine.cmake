@@ -413,7 +413,7 @@ endif()
 	
 if (OPTION_LIVECREATE)
 	add_subdirectory ("Code/CryEngine/CryLiveCreate")
-endif
+endif()
 
 if (OPTION_ENGINE)
 	#physics

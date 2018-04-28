@@ -13,6 +13,7 @@
 #include "Objects/InspectorWidgetCreator.h"
 #include <CrySerialization/Decorators/Resources.h>
 #include <CrySerialization/Decorators/ResourcesAudio.h>
+#include <CrySerialization/Decorators/BitFlags.h>
 
 REGISTER_CLASS_DESC(CRopeObjectClassDesc);
 
@@ -30,6 +31,15 @@ SERIALIZATION_ENUM(CryAudio::EOcclusionType::Adaptive, "adaptive_state_name", "A
 SERIALIZATION_ENUM(CryAudio::EOcclusionType::Low, "low_state_name", "Low");
 SERIALIZATION_ENUM(CryAudio::EOcclusionType::Medium, "medium_state_name", "Medium");
 SERIALIZATION_ENUM(CryAudio::EOcclusionType::High, "high_state_name", "High");
+SERIALIZATION_ENUM_END();
+
+SERIALIZATION_ENUM_BEGIN(ECollisionFlags, "CollisionFlags")
+SERIALIZATION_ENUM(ECollisionFlags::Static, "Static", "Static");
+SERIALIZATION_ENUM(ECollisionFlags::SleepingRigid, "SleepingRigid", "Sleeping Rigid");
+SERIALIZATION_ENUM(ECollisionFlags::Rigid, "Rigid", "Rigid");
+SERIALIZATION_ENUM(ECollisionFlags::Living, "Living", "Living");
+SERIALIZATION_ENUM(ECollisionFlags::Independent, "Independent", "Independent");
+SERIALIZATION_ENUM(ECollisionFlags::Terrain, "Terrain", "Terrain");
 SERIALIZATION_ENUM_END();
 
 inline void RopeParamsToXml(IRopeRenderNode::SRopeParams& rp, XmlNodeRef& node, bool bLoad)
@@ -63,6 +73,7 @@ inline void RopeParamsToXml(IRopeRenderNode::SRopeParams& rp, XmlNodeRef& node, 
 		node->getAttr("hardness", rp.hardness);
 		node->getAttr("damping", rp.damping);
 		node->getAttr("sleepSpeed", rp.sleepSpeed);
+		node->getAttr("collisionFlags", rp.collisionFlags);
 	}
 	else
 	{
@@ -93,6 +104,7 @@ inline void RopeParamsToXml(IRopeRenderNode::SRopeParams& rp, XmlNodeRef& node, 
 		node->setAttr("hardness", rp.hardness);
 		node->setAttr("damping", rp.damping);
 		node->setAttr("sleepSpeed", rp.sleepSpeed);
+		node->setAttr("collisionFlags", rp.collisionFlags);
 	}
 }
 
@@ -460,6 +472,8 @@ void CRopeObject::SerializeProperties(Serialization::IArchive& ar, bool bMultiEd
 		SerializeBitflag(ar, m_ropeParams.nFlags, IRopeRenderNode::eRope_StaticAttachStart, "static_attach_start", "Static Attach Start");
 		SerializeBitflag(ar, m_ropeParams.nFlags, IRopeRenderNode::eRope_StaticAttachEnd, "static_attach_end", "Static Attach End");
 
+		ar(Serialization::BitFlags<ECollisionFlags>(m_ropeParams.collisionFlags), "CollisionFlags", "Collide With");
+		
 		ar.closeBlock();
 	}
 

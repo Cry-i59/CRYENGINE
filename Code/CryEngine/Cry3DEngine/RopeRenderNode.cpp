@@ -1199,6 +1199,7 @@ void CRopeRenderNode::Physicalize(bool bInstant)
 		pr.maxIters = m_params.nMaxIters;
 		pr.stiffness = m_params.stiffness;
 		pr.penaltyScale = m_params.hardness;
+		pr.collTypes = m_params.collisionFlags;
 
 		AnchorEndPoints(pr);
 

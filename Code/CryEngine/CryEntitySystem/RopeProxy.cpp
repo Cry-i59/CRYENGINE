@@ -194,6 +194,7 @@ inline void RopeParamsToXml(IRopeRenderNode::SRopeParams& rp, XmlNodeRef& node, 
 		node->getAttr("hardness", rp.hardness);
 		node->getAttr("damping", rp.damping);
 		node->getAttr("sleepSpeed", rp.sleepSpeed);
+		node->getAttr("collisionFlags", rp.collisionFlags);
 	}
 	else
 	{
@@ -224,6 +225,7 @@ inline void RopeParamsToXml(IRopeRenderNode::SRopeParams& rp, XmlNodeRef& node, 
 		node->setAttr("hardness", rp.hardness);
 		node->setAttr("damping", rp.damping);
 		node->setAttr("sleepSpeed", rp.sleepSpeed);
+		node->setAttr("collisionFlags", rp.collisionFlags);
 	}
 }
 

@@ -989,6 +989,16 @@ struct IDistanceCloudRenderNode : public IRenderNode
 	virtual void SetProperties(const SDistanceCloudProperties& properties) = 0;
 };
 
+enum class ECollisionFlags : std::underlying_type_t<entity_query_flags>
+{
+	Static = entity_query_flags::ent_static,
+	SleepingRigid = entity_query_flags::ent_sleeping_rigid,
+	Rigid = entity_query_flags::ent_rigid,
+	Living = entity_query_flags::ent_living,
+	Independent = entity_query_flags::ent_independent,
+	Terrain = entity_query_flags::ent_terrain
+};
+
 //////////////////////////////////////////////////////////////////////////
 struct IRopeRenderNode : public IRenderNode
 {
@@ -1048,6 +1058,8 @@ struct IRopeRenderNode : public IRenderNode
 		float hardness = 20.f;
 		float damping = 0.2f;
 		float sleepSpeed = 0.04f;
+		
+		std::underlying_type_t<ECollisionFlags> collisionFlags = 0;
 	};
 	struct SEndPointLink
 	{
