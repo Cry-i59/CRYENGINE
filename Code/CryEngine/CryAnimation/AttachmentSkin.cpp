@@ -521,6 +521,11 @@ void CAttachmentSKIN::DrawAttachment(SRendParams& RendParams, const SRenderingPa
 
 	pObj->m_pRenderNode = RendParams.pRenderNode;
 	pObj->m_editorSelectionID = RendParams.nEditorSelectionID;
+	if (m_AttFlags & FLAGS_ATTACH_HIGHLIGHT)
+	{
+		pObj->m_editorSelectionID |= 1 << 1;
+	}
+	
 	uint64 uLocalObjFlags = pObj->m_ObjFlags;
 
 	//check if it should be drawn close to the player

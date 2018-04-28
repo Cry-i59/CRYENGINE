@@ -59,6 +59,7 @@ enum AttachmentFlags
 	FLAGS_ATTACH_COMBINEATTACHMENT  = BIT(24),
 	FLAGS_ATTACH_ID_MASK            = BIT(25) | BIT(26) | BIT(27) | BIT(28) | BIT(29),
 	FLAGS_ATTACH_MERGED_FOR_SHADOWS = BIT(30),    //!< The attachment has been merged with other attachments for shadow rendering.
+	FLAGS_ATTACH_HIGHLIGHT          = BIT(31),
 };
 
 struct SVClothParams
