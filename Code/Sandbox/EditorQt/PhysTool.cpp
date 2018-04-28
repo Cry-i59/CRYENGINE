@@ -172,19 +172,34 @@ bool CPhysPullTool::MouseCallback(CViewport* view, EMouseEvent event, CPoint& po
 			aap.pEntity = m_pEntAttach;
 			aap.nPoints = 0;
 			m_pEntPull->Action(&aap);
-			if (!m_nAttachPoints && m_pEntPull->GetType() == PE_SOFT && flags & MK_CONTROL)
+			if (!m_nAttachPoints && flags & MK_CONTROL)
 			{
-				pe_status_pos sp;
-				sp.pGridRefEnt = m_pEntAttach;
-				m_pEntPull->GetStatus(&sp);
-				pe_action_slice as;
-				Vec3 pt[3] = { org, org + (sp.q * m_locAttachPos + sp.pos - org).normalized() * 100, org + dir };
-				as.pt = pt;
-				Vec3 ptEdge = pt[1].GetRotated(pt[0], (pt[2] - pt[0] ^ pt[1] - pt[0]).normalized(), DEG2RAD(1));
-				ray_hit hit1;
-				if (!(gEnv->pPhysicalWorld->RayTraceEntity(m_pEntPull, pt[0], ptEdge - pt[0], &hit1)))
-					pt[1] = ptEdge;	// slice over the edge if close enough
-				m_pEntPull->Action(&as);
+				if (m_pEntPull->GetType() == PE_SOFT)
+				{
+					pe_status_pos sp;
+					sp.pGridRefEnt = m_pEntAttach;
+					m_pEntPull->GetStatus(&sp);
+					pe_action_slice as;
+					Vec3 pt[3] = { org, org + (sp.q * m_locAttachPos + sp.pos - org).normalized() * 100, org + dir };
+					as.pt = pt;
+					Vec3 ptEdge = pt[1].GetRotated(pt[0], (pt[2] - pt[0] ^ pt[1] - pt[0]).normalized(), DEG2RAD(1));
+					ray_hit hit1;
+					if (!(gEnv->pPhysicalWorld->RayTraceEntity(m_pEntPull, pt[0], ptEdge - pt[0], &hit1)))
+						pt[1] = ptEdge;	// slice over the edge if close enough
+					m_pEntPull->Action(&as);
+				}
+				else if(m_pEntPull->GetType() == PE_ROPE)
+				{
+					pe_params_rope ropePhysicsParams;
+					if (m_pEntPull->GetParams(&ropePhysicsParams) && ropePhysicsParams.pEntTiedTo[0] != nullptr && ropePhysicsParams.pEntTiedTo[1] != nullptr)
+					{
+						pe_action_slice as;
+						Vec3 slicePoint = Vec3((m_partid + 1 + ((m_partid * 2 - ropePhysicsParams.nSegments) >> 31)) * ropePhysicsParams.length / ropePhysicsParams.nSegments, 0, 0);
+						as.pt = &slicePoint;
+						as.npt = 1;
+						m_pEntPull->Action(&as);
+					}
+				}
 			}
 			pe_action_awake aa;
 			m_pEntPull->Action(&aa);
