@@ -111,8 +111,7 @@ bool CSceneCustomStage::CreatePipelineStates(DevicePipelineStatesArray* pStateAr
 	bFullyCompiled &= CreatePipelineState(_stateDesc, ePass_DebugViewSolid, stageStates[ePass_DebugViewSolid]);
 	bFullyCompiled &= CreatePipelineState(_stateDesc, ePass_DebugViewWireframe, stageStates[ePass_DebugViewWireframe]);
 	bFullyCompiled &= CreatePipelineState(_stateDesc, ePass_DebugViewDrawModes, stageStates[ePass_DebugViewDrawModes]);
-	if (gcpRendD3D->IsEditorMode())
-		bFullyCompiled &= CreatePipelineState(_stateDesc, ePass_SelectionIDs, stageStates[ePass_SelectionIDs]);
+	bFullyCompiled &= CreatePipelineState(_stateDesc, ePass_SelectionIDs, stageStates[ePass_SelectionIDs]);
 
 	_stateDesc.technique = TTYPE_CUSTOMRENDERPASS;
 	bFullyCompiled &= CreatePipelineState(_stateDesc, ePass_Silhouette, stageStates[ePass_Silhouette]);
@@ -259,19 +258,16 @@ void CSceneCustomStage::Update()
 		CRendererResources::s_ptexSceneNormalsMap
 	);
 
-	if (gEnv->IsEditor())
-	{
-		// Highlighted ID Pass
-		m_selectionIDPass.SetLabel("CUSTOM_HIGHLIGHTED_PASS");
-		m_selectionIDPass.SetupPassContext(m_stageID, ePass_SelectionIDs, TTYPE_DEBUG, FB_GENERAL, EFSLIST_CUSTOM);
-		m_selectionIDPass.SetPassResources(m_pResourceLayout, m_pPerPassResourceSet);
-		m_selectionIDPass.SetRenderTargets(
-			// Depth
-			pDepthTexture,
-			// Color 0
-			CRendererResources::s_ptexSceneSelectionIDs
-		);
-	}
+	// Highlighted ID Pass
+	m_selectionIDPass.SetLabel("CUSTOM_HIGHLIGHTED_PASS");
+	m_selectionIDPass.SetupPassContext(m_stageID, ePass_SelectionIDs, TTYPE_DEBUG, FB_GENERAL, EFSLIST_CUSTOM);
+	m_selectionIDPass.SetPassResources(m_pResourceLayout, m_pPerPassResourceSet);
+	m_selectionIDPass.SetRenderTargets(
+		// Depth
+		pDepthTexture,
+		// Color 0
+		CRendererResources::s_ptexSceneSelectionIDs
+	);
 }
 
 bool CSceneCustomStage::DoDebugRendering()
@@ -298,8 +294,6 @@ void CSceneCustomStage::Prepare()
 	bool bViewTexelDensity = CRenderer::CV_r_TexelsPerMeter > 0;
 	bool bViewWireframe = pRenderer->GetWireframeMode() != R_SOLID_MODE;
 	bool bDebugDraw = CRenderer::CV_e_DebugDraw != 0;
-	// should probably somehow allow some editor viewports to not use this pass
-	bool bSelectionIDPass = pRenderer->IsEditorMode() && !gEnv->IsEditorGameMode();
 
 	SetAndBuildPerPassResources(false);
 
@@ -307,7 +301,7 @@ void CSceneCustomStage::Prepare()
 
 	if (bViewTexelDensity || bViewWireframe || bDebugDraw)
 		m_debugViewPass.PrepareRenderPassForUse(commandList);
-	else if (bSelectionIDPass)
+	else
 		m_selectionIDPass.PrepareRenderPassForUse(commandList);
 }
 
@@ -423,7 +417,7 @@ void CSceneCustomStage::ExecuteSelectionHighlight()
 	CTexture* pTargetRT = CRendererResources::s_ptexSceneSelectionIDs;
 	CTexture* pTargetDS = pRenderer->GetTempDepthSurface(pRenderer->GetFrameID(), pTargetRT->GetWidth(), pTargetRT->GetHeight(), true)->texture.pTexture;
 
-	m_selectionIDPass.SetLabel("EDITOR_SELECTION_HIGHLIGHT");
+	m_selectionIDPass.SetLabel("SELECTION_HIGHLIGHT");
 	m_selectionIDPass.SetViewport(D3DViewPort{
 		0.f,
 		0.f,

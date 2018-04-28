@@ -815,10 +815,7 @@ void CRendererResources::CreateSceneMaps(ETEX_Format eTF, int resourceWidth, int
 		}
 	}
 
-	if (gEnv->IsEditor())
-	{
-		SD3DPostEffectsUtils::GetOrCreateRenderTarget("$SceneSelectionIDs", s_ptexSceneSelectionIDs, nWidth, nHeight, Clr_Transparent, false, false, eTF_R32F, -1, nFlags);
-	}
+	SD3DPostEffectsUtils::GetOrCreateRenderTarget("$SceneSelectionIDs", s_ptexSceneSelectionIDs, nWidth, nHeight, Clr_Transparent, false, false, eTF_R32F, -1, nFlags);
 }
 
 void CRendererResources::DestroySceneMaps()
