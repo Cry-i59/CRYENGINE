@@ -252,19 +252,12 @@ namespace Cry
 				// Set the output path if nothing was specified by the user
 				if (!HasOutputCubemapPath())
 				{
-					const char* szLevelName;
+					char szPathBuffer[ICryPak::g_nMaxPath];
+					gEnv->pGameFramework->GetAbsLevelPath(szPathBuffer, ICryPak::g_nMaxPath);
 
-					if (ILevelInfo* pLevel = gEnv->pGameFramework->GetILevelSystem()->GetCurrentLevel())
-					{
-						szLevelName = pLevel->GetName();
-					}
-					else
-					{
-						szLevelName = "UnknownLevel";
-					}
+					string folder = PathUtil::Make(PathUtil::MakeGamePath(szPathBuffer), "Cubemaps");
 
-					string folder = string("textures\\cubemaps\\") + szLevelName;
-					m_generation.m_generatedCubemapPath.value = folder + "\\" + m_pEntity->GetName() + string("_cm.tif");
+					m_generation.m_generatedCubemapPath.value = PathUtil::Make(folder, m_pEntity->GetName() + string("_cm"), ".tif");
 				}
 
 				Generate(m_generation.m_generatedCubemapPath);
