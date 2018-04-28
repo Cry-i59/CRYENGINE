@@ -95,7 +95,8 @@ public:
 		g_szParams[pe_params_skeleton::type_id] = sizeof(pe_params_skeleton);
 		g_szParams[pe_params_collision_class::type_id] = sizeof(pe_params_collision_class);
 		g_szParams[pe_params_walking_rigid::type_id] = sizeof(pe_params_walking_rigid);
-
+		g_szParams[pe_params_joint_dynamics::type_id] = sizeof(pe_params_joint_dynamics);
+		
 		g_szAction[pe_action_impulse::type_id] = sizeof(pe_action_impulse);
 		g_szAction[pe_action_reset::type_id] = sizeof(pe_action_reset);
 		g_szAction[pe_action_add_constraint::type_id] = sizeof(pe_action_add_constraint);

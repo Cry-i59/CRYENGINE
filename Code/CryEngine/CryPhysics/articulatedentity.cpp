@@ -48,7 +48,7 @@ CArticulatedEntity::CArticulatedEntity(CPhysicalWorld *pWorld, IGeneralMemoryHea
 	, m_bFastLimbs(0)
 	, m_maxPenetrationCur(0.0f)
 	, m_bUsingUnproj(0)
-	, m_bUpdateBodies(1)
+	, m_bUpdateBodies(0)
 	, m_nDynContacts(0)
 	, m_bInGroup(0)
 	, m_bIgnoreCommands(0)
@@ -435,6 +435,19 @@ int CArticulatedEntity::SetParams(pe_params *_params, int bThreadSafe)
 		return 1;
 	}
 
+	if (_params->type == pe_params_joint_dynamics::type_id) {
+		pe_params_joint_dynamics *params = (pe_params_joint_dynamics*)_params;
+		if (!is_unused(params->v))
+		{
+			m_joints[0].body.v = m_joints[0].prev_v = params->v;
+		}
+
+		if (!is_unused(params->w))
+		{
+			m_joints[0].body.w = m_joints[0].prev_w = params->w;
+		}
+	}
+	
 	if (_params->type==pe_params_joint::type_id) {
 		pe_params_joint *params = (pe_params_joint*)_params;
 		m_bPartPosForced &= ~1;

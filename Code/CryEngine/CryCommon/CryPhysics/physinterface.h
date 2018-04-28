@@ -46,6 +46,7 @@ enum EPE_Params
 	ePE_params_structural_initial_velocity = 25,
 	ePE_params_collision_class             = 26,
 	ePE_params_walking_rigid               = 27,
+	ePE_params_joint_dynamics              = 28,
 
 	ePE_Params_Count
 };
@@ -844,6 +845,18 @@ struct pe_params_joint : pe_params
 	VALIDATOR(q)
 	VALIDATOR(qext)
 	VALIDATORS_END
+};
+
+struct pe_params_joint_dynamics : pe_params
+{
+	enum entype { type_id = ePE_params_joint_dynamics };
+	pe_params_joint_dynamics()
+	{
+		type = type_id;
+		MARK_UNUSED v, w;
+	}
+
+	Vec3 v, w;
 };
 
 struct pe_params_articulated_body : pe_params
