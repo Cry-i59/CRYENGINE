@@ -6528,7 +6528,7 @@ public:
 
 	void OnEditorNotifyEvent(EEditorNotifyEvent event)
 	{
-		if (event == eNotify_OnEditToolChange)
+		if (event == eNotify_OnEditToolEndChange)
 		{
 			// Check tool state.
 			CEditTool* tool = GetIEditor()->GetEditTool();
