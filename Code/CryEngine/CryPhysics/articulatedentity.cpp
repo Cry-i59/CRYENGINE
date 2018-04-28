@@ -437,15 +437,24 @@ int CArticulatedEntity::SetParams(pe_params *_params, int bThreadSafe)
 
 	if (_params->type == pe_params_joint_dynamics::type_id) {
 		pe_params_joint_dynamics *params = (pe_params_joint_dynamics*)_params;
+		const int i = 0;
 		if (!is_unused(params->v))
 		{
-			m_joints[0].body.v = m_joints[0].prev_v = params->v;
+			m_joints[i].prev_v = m_joints[i].body.v = (m_joints[i].body.P = params->v);
 		}
 
 		if (!is_unused(params->w))
 		{
-			m_joints[0].body.w = m_joints[0].prev_w = params->w;
+			Matrix33 R = (Matrix33)(m_parts[i].q * !m_infos[i].q0 * !m_joints[i].body.qfb);
+			Matrix33 Iinv = R * m_joints[i].body.Ibody_inv*R.T();
+			
+			m_joints[i].prev_w = m_joints[i].body.w = Iinv * (m_joints[i].body.L = params->w);
 		}
+		
+		CPhysicalEntity **pentlist;
+		int nEnts = m_pWorld->GetEntitiesAround(m_BBox[0], m_BBox[1], pentlist, m_collTypes&(ent_sleeping_rigid | ent_living | ent_independent) | ent_triggers, this);
+		for (--nEnts; nEnts >= 0; nEnts--) if (pentlist[nEnts] != this)
+			pentlist[nEnts]->Awake();
 	}
 	
 	if (_params->type==pe_params_joint::type_id) {
