@@ -127,7 +127,15 @@ void RemoveGameTokenFromDebugList(IConsoleCmdArgs* pArgs)
 CGameTokenSystem::CGameTokenSystem()
 {
 	CGameToken::g_pGameTokenSystem = this;
-	m_pScriptBind = new CScriptBind_GameToken(this);
+	if (gEnv->pScriptSystem != nullptr)
+	{
+		m_pScriptBind = new CScriptBind_GameToken(this);
+	}
+	else
+	{
+		m_pScriptBind = nullptr;
+	}
+	
 	m_pGameTokensMap = new GameTokensMap();
 	m_bGoingIntoGame = false;
 

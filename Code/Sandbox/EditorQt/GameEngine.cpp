@@ -488,10 +488,11 @@ void CGameEngine::InitAdditionalEngineComponents()
 
 	{
 		LOADING_TIME_PROFILE_SECTION_NAMED("CGameEngine::InitAdditionalEngineComponents - lua entity scripts");
-		// Execute Editor.lua override file.
-		IScriptSystem* pScriptSystem = m_pISystem->GetIScriptSystem();
-		pScriptSystem->ExecuteFile("Editor.Lua", false);
-
+		if (IScriptSystem* pScriptSystem = m_pISystem->GetIScriptSystem())
+		{
+			pScriptSystem->ExecuteFile("Editor.Lua", false);
+		}
+			
 		SplashScreen::SetText("Loading Entity Scripts...");
 		CEntityScriptRegistry::Instance()->LoadScripts();
 	}
@@ -1754,7 +1755,7 @@ bool CGameEngine::BuildEntitySerializationList(XmlNodeRef output)
 
 void CGameEngine::OnTerrainModified(const Vec2& modPosition, float modAreaRadius, bool bFullTerrain, bool bGeometryModified)
 {
-	INavigationSystem* pNavigationSystem = gEnv->pAISystem->GetNavigationSystem();
+	INavigationSystem* pNavigationSystem = gEnv->pAISystem != nullptr ? gEnv->pAISystem->GetNavigationSystem() : nullptr;
 
 	if (pNavigationSystem)
 	{

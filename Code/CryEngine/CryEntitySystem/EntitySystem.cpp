@@ -237,10 +237,11 @@ bool CEntitySystem::Init(ISystem* pSystem)
 	m_pClassRegistry = new CEntityClassRegistry;
 	m_pClassRegistry->InitializeDefaultClasses();
 
-	//////////////////////////////////////////////////////////////////////////
-	// Initialize entity script bindings.
-	m_pEntityScriptBinding = new CScriptBind_Entity(pSystem->GetIScriptSystem(), pSystem);
-
+	if (pSystem->GetIScriptSystem() != nullptr)
+	{
+		m_pEntityScriptBinding = new CScriptBind_Entity(pSystem->GetIScriptSystem(), pSystem);
+	}
+		
 	// Initialize physics events handler.
 	if (pSystem->GetIPhysicalWorld())
 		m_pPhysicsEventListener = new CPhysicsEventListener(pSystem->GetIPhysicalWorld());

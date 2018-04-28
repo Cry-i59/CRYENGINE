@@ -1862,9 +1862,13 @@ bool CCryAction::Initialize(SSystemInitParams& startupParams)
 
 	m_pTimeDemoRecorder = new CTimeDemoRecorder();
 
-	CScriptRMI::RegisterCVars();
 	CGameObject::CreateCVars();
-	m_pScriptRMI = new CScriptRMI();
+	
+	if (gEnv->pScriptSystem != nullptr)
+	{
+		CScriptRMI::RegisterCVars();
+		m_pScriptRMI = new CScriptRMI();
+	}
 
 	// initialize subsystems
 	m_pEffectSystem = new CEffectSystem;
@@ -1971,8 +1975,11 @@ bool CCryAction::Initialize(SSystemInitParams& startupParams)
 		m_pLevelSystem->AddListener(m_pItemSystem);
 	}
 
-	InitScriptBinds();
-
+	if (gEnv->pScriptSystem != nullptr)
+	{
+		InitScriptBinds();
+	}
+		
 	///Disabled as we now use the communication manager exclusively for readabilities
 	//CAIHandler::s_ReadabilityManager.Reload();
 	CAIFaceManager::LoadStatic();
@@ -2168,8 +2175,7 @@ void CCryAction::InitGameType(bool multiplayer, bool fromInit)
 			m_pGameSerialize->RegisterFactories(this);
 	}
 
-	ICVar* pEnableAI = gEnv->pConsole->GetCVar("sv_AISystem");
-	if (!multiplayer || (pEnableAI && pEnableAI->GetIVal()))
+	if (gEnv->pAISystem != nullptr)
 	{
 		if (!m_pAIProxyManager)
 		{
@@ -2225,7 +2231,12 @@ bool CCryAction::CompleteInit()
 	// ---------------------------
 
 	m_pMaterialEffects = new CMaterialEffects();
-	m_pScriptBindMFX = new CScriptBind_MaterialEffects(m_pSystem, m_pMaterialEffects);
+	
+	if (gEnv->pScriptSystem != nullptr)
+	{
+		m_pScriptBindMFX = new CScriptBind_MaterialEffects(m_pSystem, m_pMaterialEffects);
+	}
+	
 	m_pSystem->SetIMaterialEffects(m_pMaterialEffects);
 
 	InlineInitializationProcessing("CCryAction::CompleteInit MaterialEffects");
@@ -2234,8 +2245,7 @@ bool CCryAction::CompleteInit()
 
 	InitForceFeedbackSystem();
 
-	ICVar* pEnableAI = gEnv->pConsole->GetCVar("sv_AISystem");
-	if (!gEnv->bMultiplayer || (pEnableAI && pEnableAI->GetIVal()))
+	if (gEnv->pAISystem != nullptr)
 	{
 		m_pAIProxyManager = new CAIProxyManager;
 		m_pAIProxyManager->Init();
@@ -2265,18 +2275,22 @@ bool CCryAction::CompleteInit()
 	if (m_pMaterialEffects)
 		m_pMaterialEffects->LoadFlowGraphLibs();
 
-	if (!m_pScriptRMI->Init())
+	if (m_pScriptRMI != nullptr && !m_pScriptRMI->Init())
 		return false;
 
 	if (gEnv->pFlashUI)
 		gEnv->pFlashUI->PostInit();
 	InlineInitializationProcessing("CCryAction::CompleteInit FlashUI");
 
-	// after everything is initialized, run our main script
-	m_pScriptSystem->ExecuteFile("scripts/main.lua");
-	m_pScriptSystem->BeginCall("OnInit");
-	m_pScriptSystem->EndCall();
+	if (m_pScriptSystem != nullptr)
+	{
+		// after everything is initialized, run our main script
+		m_pScriptSystem->ExecuteFile("scripts/main.lua");
+		m_pScriptSystem->BeginCall("OnInit");
+		m_pScriptSystem->EndCall();
 
+	}
+	
 	InlineInitializationProcessing("CCryAction::CompleteInit RunMainScript");
 
 #ifdef CRYACTION_DEBUG_MEM
@@ -3198,7 +3212,7 @@ void CCryAction::InitEditor(IGameToEditorInterface* pGameToEditor)
 
 	m_pGameToEditor = pGameToEditor;
 
-	uint32 commConfigCount = gEnv->pAISystem->GetCommunicationManager()->GetConfigCount();
+	uint32 commConfigCount = gEnv->pAISystem != nullptr ? gEnv->pAISystem->GetCommunicationManager()->GetConfigCount() : 0;
 	if (commConfigCount)
 	{
 		std::vector<const char*> configNames;
@@ -3210,7 +3224,7 @@ void CCryAction::InitEditor(IGameToEditorInterface* pGameToEditor)
 		pGameToEditor->SetUIEnums("CommConfig", &configNames.front(), commConfigCount);
 	}
 
-	uint32 factionCount = gEnv->pAISystem->GetFactionMap().GetFactionCount();
+	uint32 factionCount = gEnv->pAISystem != nullptr ? gEnv->pAISystem->GetFactionMap().GetFactionCount() : 0;
 	if (factionCount)
 	{
 		std::vector<const char*> factionNames;
@@ -3238,7 +3252,7 @@ void CCryAction::InitEditor(IGameToEditorInterface* pGameToEditor)
 		pGameToEditor->SetUIEnums("ReactionFilter", reactions, reactionCount);
 	}
 
-	uint32 agentTypeCount = gEnv->pAISystem->GetNavigationSystem()->GetAgentTypeCount();
+	uint32 agentTypeCount = gEnv->pAISystem != nullptr ? gEnv->pAISystem->GetNavigationSystem()->GetAgentTypeCount() : 0;
 	if (agentTypeCount)
 	{
 		std::vector<const char*> agentTypeNames;
@@ -3668,9 +3682,12 @@ void CCryAction::OnEditorSetGameMode(int iMode)
 		m_pGame->ClearBreakHistory();
 	}
 
-	const char* szResetCameraCommand = "CryAction.ResetToNormalCamera()";
-	gEnv->pScriptSystem->ExecuteBuffer(szResetCameraCommand, strlen(szResetCameraCommand));
-
+	if(gEnv->pScriptSystem != nullptr)
+	{
+		const char* szResetCameraCommand = "CryAction.ResetToNormalCamera()";
+		gEnv->pScriptSystem->ExecuteBuffer(szResetCameraCommand, strlen(szResetCameraCommand));
+	}
+	
 	// reset any pending camera blending
 	if (m_pViewSystem)
 	{

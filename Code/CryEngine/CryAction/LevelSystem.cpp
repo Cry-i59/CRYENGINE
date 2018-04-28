@@ -1305,8 +1305,11 @@ ILevelInfo* CLevelSystem::LoadLevel(const char* _levelName)
 			return 0;
 		}
 
-		// reset all the script timers
-		gEnv->pScriptSystem->ResetTimers();
+		if(gEnv->pScriptSystem != nullptr)
+		{
+			// reset all the script timers
+			gEnv->pScriptSystem->ResetTimers();
+		}
 
 		if (gEnv->pAISystem)
 		{
@@ -1541,6 +1544,7 @@ void CLevelSystem::PrepareNextLevel(const char* levelName)
 	}
 
 	// force a Lua deep garbage collection
+	if(gEnv->pScriptSystem != nullptr)
 	{
 		gEnv->pScriptSystem->ForceGarbageCollection();
 	}

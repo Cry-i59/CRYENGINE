@@ -21,6 +21,18 @@ else()
 	option(OPTION_DRS "Build the DRS system" OFF)
 endif()
 
+if (OPTION_ENGINE)
+	option(OPTION_LUA "Build the Lua script system" ON)
+else()
+	option(OPTION_LUA "Build the Lua script system" OFF)
+endif()
+
+if (OPTION_ENGINE AND WIN32)
+	option(OPTION_LIVECREATE "Build LiveCreate" ON)
+else()
+	option(OPTION_LIVECREATE "Build LiveCreate" OFF)
+endif()
+
 option(OPTION_DOXYGEN_EXAMPLES "Build Doxygen examples with the engine" OFF)
 
 if (WIN32 OR WIN64)
@@ -389,13 +401,21 @@ if (OPTION_ENGINE)
 	#add_subdirectory ("Code/CryEngine/CryReflection")
 	add_subdirectory ("Code/CryEngine/CrySchematyc")
 	add_subdirectory ("Code/CryEngine/CrySchematyc2")
+endif()
+	
+if (OPTION_LUA)
 	add_subdirectory ("Code/CryEngine/CryScriptSystem")
+endif()
+	
+if (OPTION_ENGINE)
 	add_subdirectory ("Code/CryEngine/CryFlowGraph")
+endif()
+	
+if (OPTION_LIVECREATE)
+	add_subdirectory ("Code/CryEngine/CryLiveCreate")
+endif
 
-	if (WIN32)
-		add_subdirectory ("Code/CryEngine/CryLiveCreate")
-	endif (WIN32)
-
+if (OPTION_ENGINE)
 	#physics
 	if (PHYSICS_CRYPHYSICS)
 		add_subdirectory ("Code/CryEngine/CryPhysics")
@@ -436,9 +456,12 @@ if (OPTION_ENGINE)
 		add_subdirectory ("Code/Libs/curl")
 	endif ()
 	add_subdirectory ("Code/Libs/freetype")
+endif()
+	
+if (OPTION_LUA)
 	add_subdirectory ("Code/Libs/lua")
 endif()
-
+	
 if (OPTION_SCALEFORMHELPER OR OPTION_ENGINE OR OPTION_SHADERCACHEGEN)
 	add_subdirectory ("Code/Libs/zlib")
 	add_subdirectory ("Code/Libs/expat")

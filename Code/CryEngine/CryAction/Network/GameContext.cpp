@@ -116,7 +116,11 @@ CGameContext::CGameContext(CCryAction* pFramework, CScriptRMI* pScriptRMI, CActi
 	s_pGameContext = this;
 	gEnv->pConsole->AddConsoleVarSink(this);
 
-	m_pScriptRMI->SetContext(this);
+	if(m_pScriptRMI != nullptr)
+	{
+		m_pScriptRMI->SetContext(this);
+	}
+	
 #ifndef OLD_VOICE_SYSTEM_DEPRECATED
 	m_pVoiceController = NULL;
 #endif
@@ -165,7 +169,11 @@ CGameContext::~CGameContext()
 
 	m_pGame->RemoveGlobalPhysicsCallback(eEPE_OnCollisionLogged, OnCollision, 0);
 
-	m_pScriptRMI->SetContext(NULL);
+	if(m_pScriptRMI != nullptr)
+	{
+		m_pScriptRMI->SetContext(NULL);
+	}
+	
 #ifndef OLD_VOICE_SYSTEM_DEPRECATED
 	delete m_pVoiceController;
 #endif
@@ -963,14 +971,15 @@ void CGameContext::ObjectInitClient(EntityId entityId, INetChannel* pChannel)
 		channelId = pGameServerChannel->GetChannelId();
 	}
 
-	IEntityComponent* pProxy = pEntity->GetProxy(ENTITY_PROXY_USER);
-
-	CGameObject* pGameObject = reinterpret_cast<CGameObject*>(pProxy);
-	if (pGameObject)
+	if(IEntityComponent* pProxy = pEntity->GetProxy(ENTITY_PROXY_USER))
 	{
-		pGameObject->InitClient(channelId);
+		reinterpret_cast<CGameObject*>(pProxy)->InitClient(channelId);
+	}		
+	
+	if(m_pScriptRMI != nullptr)
+	{
+		m_pScriptRMI->OnInitClient(channelId, pEntity);
 	}
-	m_pScriptRMI->OnInitClient(channelId, pEntity);
 }
 
 bool CGameContext::SendPostSpawnObject(EntityId id, INetChannel* pINetChannel)
@@ -987,11 +996,15 @@ bool CGameContext::SendPostSpawnObject(EntityId id, INetChannel* pINetChannel)
 		channelId = pGameServerChannel->GetChannelId();
 	}
 
-	IEntityComponent* pProxy = pEntity->GetProxy(ENTITY_PROXY_USER);
-	CGameObject* pGameObject = reinterpret_cast<CGameObject*>(pProxy);
-	if (pGameObject)
-		pGameObject->PostInitClient(channelId);
-	m_pScriptRMI->OnPostInitClient(channelId, pEntity);
+	if(IEntityComponent* pProxy = pEntity->GetProxy(ENTITY_PROXY_USER))
+	{
+		reinterpret_cast<CGameObject*>(pProxy)->PostInitClient(channelId);
+	}		
+	
+	if(m_pScriptRMI != nullptr)
+	{
+		m_pScriptRMI->OnPostInitClient(channelId, pEntity);
+	}
 
 	return true;
 }
@@ -1032,7 +1045,7 @@ void CGameContext::UnboundObject(EntityId entityId)
 
 INetAtSyncItem* CGameContext::HandleRMI(bool bClient, EntityId objID, uint8 funcID, TSerialize ser, INetChannel* pChannel)
 {
-	return m_pScriptRMI->HandleRMI(bClient, objID, funcID, ser, pChannel);
+	return m_pScriptRMI != nullptr ? m_pScriptRMI->HandleRMI(bClient, objID, funcID, ser, pChannel) : nullptr;
 }
 
 //
@@ -1186,8 +1199,11 @@ bool CGameContext::OnRemove(IEntity* pEntity)
 
 	if (ok)
 	{
-		m_pScriptRMI->RemoveEntity(id);
-
+		if(m_pScriptRMI != nullptr)
+		{
+			m_pScriptRMI->RemoveEntity(id);
+		}
+			
 		if (CGameClientNub* pClientNub = m_pFramework->GetGameClientNub())
 			if (CGameClientChannel* pClientChannel = pClientNub->GetGameClientChannel())
 				if (pClientChannel->GetPlayerId() == id)
@@ -1211,13 +1227,16 @@ void CGameContext::OnReused(IEntity* pEntity, SEntitySpawnParams& params)
 	if (m_pBreakReplicator.get())
 		m_pBreakReplicator->OnReuse(pEntity, params);
 
-	m_pScriptRMI->RemoveEntity(params.prevId);
-
-	if (pEntity->GetProxy(ENTITY_PROXY_SCRIPT))
+	if(m_pScriptRMI != nullptr)
 	{
-		m_pScriptRMI->SetupEntity(params.id, pEntity, true, true);
-	}
+		m_pScriptRMI->RemoveEntity(params.prevId);
 
+		if (pEntity->GetProxy(ENTITY_PROXY_SCRIPT))
+		{
+			m_pScriptRMI->SetupEntity(params.id, pEntity, true, true);
+		}
+
+	}
 	if (CGameClientNub* pClientNub = m_pFramework->GetGameClientNub())
 		if (CGameClientChannel* pClientChannel = pClientNub->GetGameClientChannel())
 			if (pClientChannel->GetPlayerId() == params.prevId)

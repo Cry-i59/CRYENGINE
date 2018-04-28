@@ -814,6 +814,7 @@ private: // ------------------------------------------------------
 	ICVar* m_svDedicatedMaxRate;
 	ICVar* m_svAISystem;
 	ICVar* m_clAISystem;
+	ICVar* m_sys_script_system;
 	ICVar* m_sys_profile_watchdog_timeout;
 	ICVar* m_sys_job_system_filter;
 	ICVar* m_sys_job_system_enable;

@@ -75,7 +75,9 @@ void CMissionScript::Edit()
 void CMissionScript::OnReset()
 {
 	IScriptSystem* pScriptSystem = GetIEditorImpl()->GetSystem()->GetIScriptSystem();
-
+	if(pScriptSystem == nullptr)
+		return;
+	
 	SmartScriptTable pMission(pScriptSystem, true);
 	if (!pScriptSystem->GetGlobalValue("Mission", pMission))
 	{

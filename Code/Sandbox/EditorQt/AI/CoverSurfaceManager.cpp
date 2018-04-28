@@ -16,8 +16,11 @@ CCoverSurfaceManager::~CCoverSurfaceManager()
 
 void CCoverSurfaceManager::ClearGameSurfaces()
 {
-	gEnv->pAISystem->GetCoverSystem()->Clear();
-
+	if(gEnv->pAISystem != nullptr)
+	{
+		gEnv->pAISystem->GetCoverSystem()->Clear();
+	}
+		
 	SurfaceObjects::iterator it = m_surfaceObjects.begin();
 	SurfaceObjects::iterator end = m_surfaceObjects.end();
 

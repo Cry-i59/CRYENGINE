@@ -188,8 +188,16 @@ CEditorImpl::CEditorImpl(CGameEngine* ge)
 	m_pMatFxGraphManager = new CMaterialFXGraphMan;
 	m_pDevManager = new CDevManager();
 	m_pSourceControl = 0;
-	m_pScriptEnv = new EditorScriptEnvironment();
-
+	
+	if (gEnv->pScriptSystem != nullptr)
+	{
+		m_pScriptEnv = new EditorScriptEnvironment();
+	}
+	else
+	{
+		m_pScriptEnv = nullptr;
+	}
+		
 	m_pResourceSelectorHost.reset(CreateResourceSelectorHost());
 	CAutoRegisterResourceSelector::RegisterAll();
 

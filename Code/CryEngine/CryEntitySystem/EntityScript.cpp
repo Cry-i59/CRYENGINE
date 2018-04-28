@@ -212,6 +212,9 @@ bool CEntityScript::Init(const char* sTableName, IScriptTable* pScriptTable)
 //////////////////////////////////////////////////////////////////////////
 bool CEntityScript::LoadScript(bool bForceReload)
 {
+	if (m_pScriptSystem == nullptr)
+		return false;
+	
 	if (m_pEntityTable && !bForceReload)
 		return true;
 

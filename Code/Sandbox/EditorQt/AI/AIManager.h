@@ -110,6 +110,11 @@ struct SAINavigationPreferences : public SPreferencePage
 
 	virtual bool Serialize(yasli::Archive& ar) override
 	{
+		if(gEnv->pAISystem == nullptr)
+		{
+			return false;
+		}
+		
 		INavigationSystem* pNavigationSystem = gEnv->pAISystem->GetNavigationSystem();
 
 		IF_UNLIKELY(pNavigationSystem == nullptr)

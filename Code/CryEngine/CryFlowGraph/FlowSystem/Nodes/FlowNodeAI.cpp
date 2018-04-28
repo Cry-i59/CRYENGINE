@@ -2218,12 +2218,18 @@ public:
 
 	CFlowNode_AIGlobalPerceptionScaling(SActivationInfo* pActInfo)
 	{
-		gEnv->pAISystem->RegisterGlobalPerceptionListener(this);
+		if(gEnv->pAISystem != nullptr)
+		{
+			gEnv->pAISystem->RegisterGlobalPerceptionListener(this);
+		}
 	}
 
 	virtual ~CFlowNode_AIGlobalPerceptionScaling()
 	{
-		gEnv->pAISystem->UnregisterGlobalPerceptionlistener(this);
+		if(gEnv->pAISystem != nullptr)
+		{
+			gEnv->pAISystem->UnregisterGlobalPerceptionlistener(this);
+		}
 	}
 
 	virtual void GetConfiguration(SFlowNodeConfig& config)

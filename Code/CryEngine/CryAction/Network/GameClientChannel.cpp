@@ -143,7 +143,7 @@ CGameClientChannel::CGameClientChannel(INetChannel* pNetChannel, CGameContext* p
 #endif // !NEW_BANDWIDTH_MANAGEMENT
 
 	CRY_ASSERT(pNetChannel);
-	if (!CCryAction::GetCryAction()->IsGameSessionMigrating())
+	if (!CCryAction::GetCryAction()->IsGameSessionMigrating() && gEnv->pScriptSystem != nullptr)
 	{
 		// if we're migrating these globals are already setup to the correct variables
 		gEnv->pScriptSystem->SetGlobalToNull(LOCAL_ACTORID_VARIABLE);
@@ -159,7 +159,7 @@ CGameClientChannel::~CGameClientChannel()
 	CCryAction::GetCryAction()->OnActionEvent(SActionEvent(eAE_channelDestroyed, 0));
 	m_pNub->ClientChannelClosed();
 
-	if (!CCryAction::GetCryAction()->IsGameSessionMigrating())
+	if (!CCryAction::GetCryAction()->IsGameSessionMigrating() && gEnv->pScriptSystem != nullptr)
 	{
 		// if we're migrating these globals are already setup to the correct variables
 		gEnv->pScriptSystem->SetGlobalToNull(LOCAL_ACTORID_VARIABLE);
@@ -423,29 +423,30 @@ void CGameClientChannel::SetPlayerId(EntityId id)
 {
 	CGameChannel::SetPlayerId(id);
 
-	IScriptSystem* pSS = gEnv->pScriptSystem;
-
 	if (id)
 	{
-		ScriptHandle hdl;
-		hdl.n = GetPlayerId();
-		pSS->SetGlobalValue(LOCAL_ACTORID_VARIABLE, hdl);
-		IEntity* pEntity = gEnv->pEntitySystem->GetEntity(id);
-		if (pEntity)
+		if(gEnv->pScriptSystem != nullptr)
 		{
-			IGameObject* pGameObject = CCryAction::GetCryAction()->GetGameObject(id);
-			pSS->SetGlobalValue(LOCAL_ACTOR_VARIABLE, pEntity->GetScriptTable());
-			pSS->SetGlobalValue(LOCAL_CHANNELID_VARIABLE, pGameObject ? pGameObject->GetChannelId() : 0);
+			ScriptHandle hdl;
+			hdl.n = GetPlayerId();
+			gEnv->pScriptSystem->SetGlobalValue(LOCAL_ACTORID_VARIABLE, hdl);
+			
+			if (IEntity* pEntity = gEnv->pEntitySystem->GetEntity(id))
+			{
+				IGameObject* pGameObject = CCryAction::GetCryAction()->GetGameObject(id);
+				gEnv->pScriptSystem->SetGlobalValue(LOCAL_ACTOR_VARIABLE, pEntity->GetScriptTable());
+				gEnv->pScriptSystem->SetGlobalValue(LOCAL_CHANNELID_VARIABLE, pGameObject ? pGameObject->GetChannelId() : 0);
+			}
+			else
+			{
+				gEnv->pScriptSystem->SetGlobalToNull(LOCAL_ACTOR_VARIABLE);
+				gEnv->pScriptSystem->SetGlobalToNull(LOCAL_CHANNELID_VARIABLE);
+			}
 		}
-		else
-		{
-			pSS->SetGlobalToNull(LOCAL_ACTOR_VARIABLE);
-			pSS->SetGlobalToNull(LOCAL_CHANNELID_VARIABLE);
-		}
-
+		
 		CallOnSetPlayerId();
 	}
-	else
+	else if(gEnv->pScriptSystem != nullptr)
 	{
 		gEnv->pScriptSystem->SetGlobalToNull(LOCAL_ACTORID_VARIABLE);
 		gEnv->pScriptSystem->SetGlobalToNull(LOCAL_ACTOR_VARIABLE);

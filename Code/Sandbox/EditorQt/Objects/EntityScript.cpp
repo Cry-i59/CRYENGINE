@@ -1332,13 +1332,15 @@ std::shared_ptr<CEntityScript> CEntityScriptRegistry::Insert(IEntityClass* pClas
 
 void CEntityScriptRegistry::SetClassCategory(CEntityScript* script)
 {
-	IScriptSystem* scriptSystem = GetIEditorImpl()->GetSystem()->GetIScriptSystem();
-
-	SmartScriptTable pEntity(scriptSystem, true);
-	if (!scriptSystem->GetGlobalValue(script->GetName(), pEntity))
+	IScriptSystem* pScriptSystem = GetIEditorImpl()->GetSystem()->GetIScriptSystem();
+	if(pScriptSystem == nullptr)
+		return;
+	
+	SmartScriptTable pEntity(pScriptSystem, true);
+	if (!pScriptSystem->GetGlobalValue(script->GetName(), pEntity))
 		return;
 
-	SmartScriptTable pEditor(scriptSystem, true);
+	SmartScriptTable pEditor(pScriptSystem, true);
 	if (pEntity->GetValue("Editor", pEditor))
 	{
 		const char* clsCategory;

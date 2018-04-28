@@ -3574,18 +3574,16 @@ bool CSystem::Initialize(SSystemInitParams& startupParams)
 		//////////////////////////////////////////////////////////////////////////
 		// SCRIPT SYSTEM
 		//////////////////////////////////////////////////////////////////////////
-		// We need script materials for now
-
-		if (!startupParams.bShaderCacheGen)
+		if (!startupParams.bShaderCacheGen && m_sys_script_system->GetIVal() != 0)
 		{
 			CryLogAlways("Script System Initialization");
 			INDENT_LOG_DURING_SCOPE();
 
 			if (!InitScriptSystem(startupParams))
 				return false;
+			
+			InlineInitializationProcessing("CSystem::Init InitScripts");
 		}
-
-		InlineInitializationProcessing("CSystem::Init InitScripts");
 
 		//////////////////////////////////////////////////////////////////////////
 
@@ -3692,9 +3690,10 @@ bool CSystem::Initialize(SSystemInitParams& startupParams)
 		//////////////////////////////////////////////////////////////////////////
 		if (!startupParams.bPreview && !m_bUIFrameworkMode && !startupParams.bShaderCacheGen)
 		{
-			if (gEnv->IsDedicated() && m_svAISystem && !m_svAISystem->GetIVal())
-				;
-			else
+			const bool enableAiForServer = gEnv->IsDedicated() && m_svAISystem->GetIVal();
+			const bool enableAiForClient = !gEnv->IsDedicated() && m_clAISystem->GetIVal();
+			
+			if(enableAiForServer || enableAiForClient)
 			{
 				CryLogAlways("AI initialization");
 				INDENT_LOG_DURING_SCOPE();
@@ -5103,6 +5102,8 @@ void CSystem::CreateSystemVars()
 
 	m_clAISystem = REGISTER_INT("cl_AISystem", 0, VF_REQUIRE_APP_RESTART, "Load and use the AI system on the client");
 
+	m_sys_script_system = REGISTER_INT("sys_script_system", 1, VF_REQUIRE_APP_RESTART, "Load and use the Lua script system");
+	
 	m_cvSSInfo = REGISTER_INT("sys_SSInfo", 0, 0,
 	                          "Show SourceSafe information (Name,Comment,Date) for file errors."
 	                          "Usage: sys_SSInfo [0/1]\n"

@@ -925,7 +925,7 @@ bool CObjectMode::OnMButtonDown(CViewport* view, int nFlags, CPoint point)
 			AwakeObjectAtPoint(view, point);
 			return true;
 		}
-		else
+		else if(gEnv->pAISystem != nullptr)
 		{
 			// Update AI move simulation when not holding Ctrl down.
 			return m_AIMoveSimulation.UpdateAIMoveSimulation(view, point);

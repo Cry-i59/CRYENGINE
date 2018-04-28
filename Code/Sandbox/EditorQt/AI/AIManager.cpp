@@ -197,18 +197,21 @@ void CAIManager::OnEditorNotifyEvent(EEditorNotifyEvent event)
 	{
 	case eNotify_OnBeginGameMode:
 		{
-			bool allowDynamicRegen = false;
-			ICVar* pVar = gEnv->pConsole->GetCVar("ai_MNMAllowDynamicRegenInEditor");
-			CRY_ASSERT_MESSAGE(pVar, "The cvar ai_MNMAllowDynamicRegenInEditor is not defined.");
-			if (pVar)
+			if (gEnv->pAISystem != nullptr)
 			{
-				allowDynamicRegen = pVar->GetIVal() != 0;
-			}
+				bool allowDynamicRegen = false;
+				ICVar* pVar = gEnv->pConsole->GetCVar("ai_MNMAllowDynamicRegenInEditor");
+				CRY_ASSERT_MESSAGE(pVar, "The cvar ai_MNMAllowDynamicRegenInEditor is not defined.");
+				if (pVar)
+				{
+					allowDynamicRegen = pVar->GetIVal() != 0;
+				}
 
-			if (!allowDynamicRegen)
-			{
-				PauseNavigationUpdating();
-				PauseMNMRegeneration();
+				if (!allowDynamicRegen)
+				{
+					PauseNavigationUpdating();
+					PauseMNMRegeneration();
+				}
 			}
 		}
 		break;
@@ -746,6 +749,9 @@ CSOParamBase* CAIManager::LoadTemplateParams(XmlNodeRef root) const
 
 void CAIManager::OnEnterGameMode(bool inGame)
 {
+	if (m_pAISystem == nullptr)
+		return;
+	
 	bool allowDynamicRegen = false;
 	ICVar* pVar = gEnv->pConsole->GetCVar("ai_MNMAllowDynamicRegenInEditor");
 	CRY_ASSERT_MESSAGE(pVar, "The cvar ai_MNMAllowDynamicRegenInEditor is not defined.");
