@@ -1449,13 +1449,15 @@ void CEntityObject::GetLocalBounds(AABB& box)
 	{
 		for (int i = 0, n = m_pEntity->GetSlotCount(); i < n; ++i)
 		{
+			AABB localSlotBounds;
+			
 			if (IStatObj* pStatObj = m_pEntity->GetStatObj(i))
 			{
-				box.Add(pStatObj->GetAABB());
+				localSlotBounds = pStatObj->GetAABB();
 			}
 			else if (ICharacterInstance* pCharacter = m_pEntity->GetCharacter(i))
 			{
-				box.Add(pCharacter->GetAABB());
+				localSlotBounds = pCharacter->GetAABB();
 			}
 			else if (IRenderNode* pRenderNode = m_pEntity->GetRenderNode(i))
 			{
@@ -1463,9 +1465,20 @@ void CEntityObject::GetLocalBounds(AABB& box)
 				    && pRenderNode->GetRenderNodeType() != eERType_ParticleEmitter
 				    && pRenderNode->GetRenderNodeType() != eERType_FogVolume)
 				{
-					box.Add(pRenderNode->GetBBox());
+					localSlotBounds = pRenderNode->GetBBox();
+				}
+				else
+				{
+					continue;
 				}
 			}
+			else
+			{
+				continue;
+			}
+			
+			localSlotBounds.SetTransformedAABB(m_pEntity->GetSlotLocalTM(i, false), localSlotBounds);
+			box.Add(localSlotBounds);
 		}
 	}
 }
