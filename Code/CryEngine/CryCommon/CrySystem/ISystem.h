@@ -489,7 +489,11 @@ enum ESystemEvent
 	ESYSTEM_EVENT_GAME_FRAMEWORK_INIT_DONE,
 
 	//! Sent if the CryAction module is about to shutdown
-	ESYSTEM_EVENT_GAME_FRAMEWORK_ABOUT_TO_SHUTDOWN
+	ESYSTEM_EVENT_GAME_FRAMEWORK_ABOUT_TO_SHUTDOWN,
+	
+	//! Sent before CryAction systems are fully initialized
+	//! This entry point can for example be used to register UI action event systems before it is too late
+	ESYSTEM_EVENT_GAME_FRAMEWORK_PRE_COMPLETE_INIT
 };
 
 //! User defined callback, which can be passed to ISystem.

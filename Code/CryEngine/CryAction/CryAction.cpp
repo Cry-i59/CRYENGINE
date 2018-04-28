@@ -2047,6 +2047,8 @@ bool CCryAction::Initialize(SSystemInitParams& startupParams)
 	if (startupParams.bExecuteCommandLine)
 		GetISystem()->ExecuteCommandLine();
 
+	gEnv->pSystem->GetISystemEventDispatcher()->OnSystemEvent(ESYSTEM_EVENT_GAME_FRAMEWORK_PRE_COMPLETE_INIT, 0, 0);
+	
 	// game got initialized, time to finalize framework initialization
 	if (CompleteInit())
 	{
