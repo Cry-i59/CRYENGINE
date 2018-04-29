@@ -1457,7 +1457,7 @@ bool CHWShader_D3D::AutoGenMultiresGS(TArray<char>& sNewScr, CShader *pSH)
 		char szPosName[128];
 		char *szPosA = strstr(szStrStart, ":POSITION");
 		if (!szPosA || szPosA >= szStrEnd)
-			szPosA = strstr(szStrStart, ":SV_Position");
+			szPosA = strstr(szStrStart, ":SV_POSITION");
 		if (!szPosA || szPosA >= szStrEnd)
 		{
 #if !defined(_RELEASE)
