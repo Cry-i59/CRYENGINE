@@ -23,6 +23,9 @@ public:
 		eVrProjection_LensMatched
 	};
 
+	static void* s_pCurInstVS;
+	static void* s_pCurHWVS;
+
 public:
 	static void Init(CD3D9Renderer* pRenderer);
 	static void Reset();

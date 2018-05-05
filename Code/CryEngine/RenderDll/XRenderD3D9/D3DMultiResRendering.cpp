@@ -22,6 +22,9 @@
 
 CVrProjectionManager* CVrProjectionManager::m_pInstance = nullptr;
 
+void* CVrProjectionManager::s_pCurInstVS = nullptr;
+void* CVrProjectionManager::s_pCurHWVS = nullptr;
+
 CVrProjectionManager::CVrProjectionManager(CD3D9Renderer* const pRenderer)
 	: m_pRenderer(pRenderer)
 	, m_isConfigured(false)
@@ -349,7 +352,7 @@ void CVrProjectionManager::ExecuteFlattenDepth(CTexture* pSrcRT, CTexture* pDest
 	{
 		static CCryNameTSCRC techFlattenDepth("FlattenDepth");
 
-		m_passDepthFlattening.SetTechnique(pShader, techFlattenDepth, CVrProjectionManager::Instance()->GetRTFlags());
+		m_passDepthFlattening.SetTechnique(pShader, techFlattenDepth, 0);
 		m_passDepthFlattening.SetRenderTarget(0, pDestRT);
 		m_passDepthFlattening.SetState(GS_NODEPTHTEST);
 		m_passDepthFlattening.SetFlags(CPrimitiveRenderPass::ePassFlags_RequireVrProjectionConstants);

@@ -1201,6 +1201,7 @@ _smart_ptr<CTexture> CD3DStereoRenderer::WrapD3DRenderTarget(D3DTexture* d3dText
 	assert(texture->GetDepth() == 1);
 
 	d3dTexture->AddRef();
+	d3dTexture->SetPrivateData(WKPDID_D3DDebugObjectName, strlen(name), name);
 
 	texture->SRGBRead(DeviceFormats::ConvertToSRGB(format) == format);
 	texture->SetDevTexture(CDeviceTexture::Associate(texture->GetLayout(), d3dTexture));

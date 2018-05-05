@@ -48,11 +48,11 @@ EShaderStage SDeviceObjectHelpers::GetShaderInstanceInfo(THwShaderInfo& result, 
 				if (shaderStage == eHWSC_Geometry && pHWShaderD3D)
 				{
 					// TODO: do this without global variables!! (Needed in mfGenerateScript)
-					//CHWShader_D3D::s_pCurInstVS = reinterpret_cast<CHWShader_D3D::SHWSInstance*>(result[eHWSC_Vertex].pHwShaderInstance);
-					CHWShader_D3D::s_pCurHWVS = result[eHWSC_Vertex].pHwShader;
+					CVrProjectionManager::s_pCurInstVS = result[eHWSC_Vertex].pHwShaderInstance;
+					CVrProjectionManager::s_pCurHWVS = result[eHWSC_Vertex].pHwShader;
 
-					//if (!CHWShader_D3D::s_pCurInstVS || !CHWShader_D3D::s_pCurHWVS)
-						//continue;
+					if (!CVrProjectionManager::s_pCurInstVS || !CVrProjectionManager::s_pCurHWVS)
+						continue;
 				}
 			}
 

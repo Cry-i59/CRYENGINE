@@ -1135,21 +1135,21 @@ void CTiledLightVolumesStage::Execute()
 {
 	PROFILE_LABEL_SCOPE("TILED_LIGHT_VOLUMES");
 
-	int screenWidth  = GetViewport().width;
-	int screenHeight = GetViewport().height;
-	int gridWidth  = screenWidth;
-	int gridHeight = screenHeight;
-
-	if (CVrProjectionManager::IsMultiResEnabledStatic())
-		CVrProjectionManager::Instance()->GetProjectionSize(screenWidth, screenHeight, gridWidth, gridHeight);
-
-	uint32 dispatchSizeX = gridWidth  / LightTileSizeX + (gridWidth  % LightTileSizeX > 0 ? 1 : 0);
-	uint32 dispatchSizeY = gridHeight / LightTileSizeY + (gridHeight % LightTileSizeY > 0 ? 1 : 0);
-
 	bool bSeparateCullingPass = IsSeparateVolumeListGen();
 
 	if (bSeparateCullingPass)
 	{
+		const int screenWidth = GetViewport().width;
+		const int screenHeight = GetViewport().height;
+		int gridWidth = screenWidth;
+		int gridHeight = screenHeight;
+
+		if (CVrProjectionManager::IsMultiResEnabledStatic())
+			CVrProjectionManager::Instance()->GetProjectionSize(screenWidth, screenHeight, gridWidth, gridHeight);
+
+		const uint32 dispatchSizeX = gridWidth / LightTileSizeX + (gridWidth  % LightTileSizeX > 0 ? 1 : 0);
+		const uint32 dispatchSizeY = gridHeight / LightTileSizeY + (gridHeight % LightTileSizeY > 0 ? 1 : 0);
+
 		ExecuteVolumeListGen(dispatchSizeX, dispatchSizeY);
 	}
 }

@@ -1243,10 +1243,10 @@ bool CHWShader_D3D::mfGenerateScript(CShader* pSH, SHWSInstance* pInst, std::vec
 	{
 		// Generate script vor VS first;
 		//@TODO: Do this without global variable
-		//pInst = s_pCurInstVS;
+		pInst = reinterpret_cast<CHWShader_D3D::SHWSInstance*>(CVrProjectionManager::s_pCurInstVS);
 		assert(pInst);
 
-		CHWShader_D3D* curVS = (CHWShader_D3D *)s_pCurHWVS;
+		CHWShader_D3D* curVS = reinterpret_cast<CHWShader_D3D*>(CVrProjectionManager::s_pCurHWVS);
 		Table = &curVS->m_TokenTable;
 		pSHData = &curVS->m_TokenData;
 		nSFlags = curVS->m_Flags;
@@ -1428,7 +1428,7 @@ bool CHWShader_D3D::mfGenerateScript(CShader* pSH, SHWSInstance* pInst, std::vec
 
 bool CHWShader_D3D::AutoGenMultiresGS(TArray<char>& sNewScr, CShader *pSH)
 {
-	CHWShader_D3D* curVS = (CHWShader_D3D *)s_pCurHWVS;
+	CHWShader_D3D* curVS = reinterpret_cast<CHWShader_D3D*>(CVrProjectionManager::s_pCurHWVS);
 	char szEntryVS[128];
 	strcpy(szEntryVS, curVS->m_EntryFunc.c_str());
 	strcat(szEntryVS, "(");
@@ -1455,9 +1455,9 @@ bool CHWShader_D3D::AutoGenMultiresGS(TArray<char>& sNewScr, CShader *pSH)
 		szStrEnd += 2;
 
 		char szPosName[128];
-		char *szPosA = strstr(szStrStart, ":POSITION");
+		const char *szPosA = strstr(szStrStart, ":POSITION");
 		if (!szPosA || szPosA >= szStrEnd)
-			szPosA = strstr(szStrStart, ":SV_POSITION");
+			szPosA = CryStringUtils::stristr(szStrStart, ":SV_Position");
 		if (!szPosA || szPosA >= szStrEnd)
 		{
 #if !defined(_RELEASE)
@@ -1465,9 +1465,9 @@ bool CHWShader_D3D::AutoGenMultiresGS(TArray<char>& sNewScr, CShader *pSH)
 #endif
 			return false;
 		}
-		char *szPosAB = szPosA - 1;
+		const char *szPosAB = szPosA - 1;
 		while (*szPosAB == 0x20) --szPosAB;
-		char *szP = szPosAB;
+		const char *szP = szPosAB;
 		while (*szP > 0x20) --szP;
 		nSize = szPosAB - szP;
 		strncpy(szPosName, &szP[1], nSize);

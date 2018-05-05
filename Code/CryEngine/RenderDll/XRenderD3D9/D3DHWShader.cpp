@@ -34,7 +34,6 @@ bool CHWShader_D3D::s_bInitShaders = true;
 int CHWShader_D3D::s_nResetDeviceFrame = -1;
 int CHWShader_D3D::s_nInstFrame = -1;
 
-CHWShader* CHWShader::s_pCurHWVS;
 char *CHWShader::s_GS_MultiRes_NV;
 
 FXShaderCache CHWShader::m_ShaderCache;

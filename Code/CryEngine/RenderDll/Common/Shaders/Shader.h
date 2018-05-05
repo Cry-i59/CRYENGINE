@@ -694,7 +694,6 @@ public:
 	//EHWSProfile m_eHWProfile;
 	SShaderCache*             m_pGlobalCache;
 
-	static class CHWShader* s_pCurHWVS;
 	static char *s_GS_MultiRes_NV;
 
 	string                    m_Name;
