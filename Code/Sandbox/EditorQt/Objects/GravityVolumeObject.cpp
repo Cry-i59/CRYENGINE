@@ -1397,7 +1397,7 @@ void CGravityVolumeObject::OnEvent(ObjectEvent event)
 {
 	if (event == EVENT_INGAME)
 	{
-		if (m_pLuaProperties == nullptr)
+		if(m_pLuaProperties == nullptr)
 			return;
 		
 		bool bEnabled = false;

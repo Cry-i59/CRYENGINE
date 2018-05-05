@@ -90,10 +90,10 @@ void CVrProjectionManager::Configure(const SRenderViewport& originalViewport, bo
 			m_currentPreset = CRenderer::CV_r_VrProjectionPreset;
 		}
 
-		m_originalViewport.TopLeftX = originalViewport.x;
-		m_originalViewport.TopLeftY = originalViewport.y;
-		m_originalViewport.Width = originalViewport.width;
-		m_originalViewport.Height = originalViewport.height;
+		m_originalViewport.TopLeftX = static_cast<float>(originalViewport.x);
+		m_originalViewport.TopLeftY = static_cast<float>(originalViewport.y);
+		m_originalViewport.Width = static_cast<float>(originalViewport.width);
+		m_originalViewport.Height = static_cast<float>(originalViewport.height);
 		m_originalViewport.MinDepth = originalViewport.zmin;
 		m_originalViewport.MaxDepth = originalViewport.zmax;
 
@@ -358,7 +358,7 @@ void CVrProjectionManager::ExecuteFlattenDepth(CTexture* pSrcRT, CTexture* pDest
 		m_passDepthFlattening.SetPrimitiveType(CRenderPrimitive::ePrim_ProceduralTriangle);
 
 		m_passDepthFlattening.BeginConstantUpdate();
-
+		
 		m_passDepthFlattening.SetTexture(16, pSrcRT);
 	}
 

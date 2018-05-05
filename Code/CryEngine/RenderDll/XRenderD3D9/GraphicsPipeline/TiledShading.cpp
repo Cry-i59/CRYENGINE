@@ -154,7 +154,7 @@ void CTiledShadingStage::Execute()
 		auto constantBuffer = CVrProjectionManager::Instance()->GetProjectionConstantBuffer(screenWidth, screenHeight);
 		m_passCullingShading.SetInlineConstantBuffer(eConstantBufferShaderSlot_VrProjection, constantBuffer);
 	}
-
+	
 	m_passCullingShading.BeginConstantUpdate();
 	{
 		const auto &projMatrix = viewInfo[0].projMatrix;

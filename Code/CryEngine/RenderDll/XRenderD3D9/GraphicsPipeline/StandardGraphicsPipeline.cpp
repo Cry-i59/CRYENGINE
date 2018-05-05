@@ -152,7 +152,7 @@ void CStandardGraphicsPipeline::Resize(int renderWidth, int renderHeight)
 	{
 		CVrProjectionManager::Instance()->Configure(SRenderViewport(0, 0, renderWidth, renderHeight), false);
 	}
-
+	
 	CGraphicsPipeline::Resize(renderWidth, renderHeight);
 }
 

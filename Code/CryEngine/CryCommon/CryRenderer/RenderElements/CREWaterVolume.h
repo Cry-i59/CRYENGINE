@@ -15,14 +15,14 @@ public:
 	virtual ~CREWaterVolume();
 
 	virtual void mfGetPlane(Plane& pl) override;
-	virtual void mfCenter(Vec3& vCenter, CRenderObject* pObj) override;
+	virtual void mfCenter(Vec3& vCenter, CRenderObject* pObj, const SRenderingPassInfo& passInfo) override;
 
 	virtual void GetMemoryUsage(ICrySizer* pSizer) const override
 	{
 		pSizer->AddObject(this, sizeof(*this));
 	}
 
-	virtual bool Compile(CRenderObject* pObj, CRenderView *pRenderView) override;
+	virtual bool Compile(CRenderObject* pObj, CRenderView *pRenderView, bool updateInstanceDataOnly) override;
 	virtual void DrawToCommandList(CRenderObject* pObj, const struct SGraphicsPipelinePassContext& ctx) override;
 
 private:

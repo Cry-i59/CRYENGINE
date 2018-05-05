@@ -201,12 +201,12 @@ void CTiledLightVolumesStage::Resize(int renderWidth, int renderHeight)
 
 	int gridWidth = renderWidth;
 	int gridHeight = renderHeight;
-
+	
 	if (CVrProjectionManager::IsMultiResEnabledStatic())
 		CVrProjectionManager::Instance()->GetProjectionSize(renderWidth, renderHeight, gridWidth, gridHeight);
-
-	uint32 dispatchSizeX = gridWidth / LightTileSizeX + (gridWidth  % LightTileSizeX > 0 ? 1 : 0);
-	uint32 dispatchSizeY = gridHeight / LightTileSizeY + (gridHeight % LightTileSizeY > 0 ? 1 : 0);
+	
+	const uint32 dispatchSizeX = gridWidth  / LightTileSizeX + (gridWidth  % LightTileSizeX > 0 ? 1 : 0);
+	const uint32 dispatchSizeY = gridHeight / LightTileSizeY + (gridHeight % LightTileSizeY > 0 ? 1 : 0);
 
 	if (m_dispatchSizeX == dispatchSizeX &&
 		m_dispatchSizeY == dispatchSizeY)

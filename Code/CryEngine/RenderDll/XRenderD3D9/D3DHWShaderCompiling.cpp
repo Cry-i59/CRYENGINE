@@ -1461,7 +1461,7 @@ bool CHWShader_D3D::AutoGenMultiresGS(TArray<char>& sNewScr, CShader *pSH)
 		if (!szPosA || szPosA >= szStrEnd)
 		{
 #if !defined(_RELEASE)
-			CRY_ASSERT_MESSAGE(false, "Cannot generate a GS for a VS with no SV_Position output");
+			CRY_ASSERT_MESSAGE(false, "Cannot generate a GS for a VS with no SV_POSITION output");
 #endif
 			return false;
 		}

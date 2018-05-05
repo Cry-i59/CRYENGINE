@@ -44,6 +44,8 @@ bool CRenderDisplayContext::IsNativeScalingEnabled() const
 
 void CRenderDisplayContext::SetDisplayResolutionAndRecreateTargets(uint32_t displayWidth, uint32_t displayHeight, const SRenderViewport& vp)
 {
+	CRY_ASSERT(displayWidth > 0 && displayHeight > 0);
+
 	m_viewport = vp;
 
 	if (m_DisplayWidth == displayWidth && m_DisplayHeight == displayHeight)
@@ -443,6 +445,28 @@ void CSwapChainBackedRenderDisplayContext::SetFullscreenState(bool isFullscreen)
 #endif
 }
 
+Vec2_tpl<uint32_t> CSwapChainBackedRenderDisplayContext::FindClosestMatchingScreenResolution(const Vec2_tpl<uint32_t> &resolution) const
+{
+#if CRY_PLATFORM_WINDOWS
+	if (m_swapChain.GetSwapChain() && m_pOutput)
+	{
+		DXGI_SWAP_CHAIN_DESC scDesc;
+		m_swapChain.GetSwapChain()->GetDesc(&scDesc);
+
+		scDesc.BufferDesc.Width = resolution.x;
+		scDesc.BufferDesc.Height = resolution.y;
+
+		DXGI_MODE_DESC match;
+		if (SUCCEEDED(m_pOutput->FindClosestMatchingMode(&scDesc.BufferDesc, &match, gcpRendD3D.DevInfo().Device())))
+		{
+			return Vec2_tpl<uint32_t>{ match.Width, match.Height };
+		}
+	}
+#endif
+
+	return resolution;
+}
+
 #if CRY_PLATFORM_WINDOWS
 void CSwapChainBackedRenderDisplayContext::EnforceFullscreenPreemption()
 {
@@ -497,7 +521,9 @@ CTexture* CSwapChainBackedRenderDisplayContext::GetCurrentBackBuffer() const
 	index = m_swapChain.GetSwapChain()->GnmGetCurrentBackBufferIndex(pCommandList);
 #endif
 
-	assert(index < m_backBuffersArray.size());
+	CRY_ASSERT(index < m_backBuffersArray.size());
+	if (index >= m_backBuffersArray.size())
+		return nullptr;
 
 	return m_backBuffersArray[index];
 }

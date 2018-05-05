@@ -308,7 +308,8 @@ public:
 	uint32_t                   GenerateUniqueContextId() { return m_uniqueDisplayContextId++; }
 	SDisplayContextKey         AddCustomContext(const CRenderDisplayContextPtr &context) threadsafe;
 	virtual SDisplayContextKey CreateSwapChainBackedContext(const SDisplayContextDescription& desc) threadsafe final;
-	virtual void               ResizeContext(const SDisplayContextKey& key,int width,int height) threadsafe final;
+	void                       ResizeContext(CRenderDisplayContext *, int width, int height) threadsafe;
+	virtual void               ResizeContext(const SDisplayContextKey& key, int width, int height) threadsafe final;
 	virtual bool               DeleteContext(const SDisplayContextKey& key) threadsafe final;
 
 #ifdef CRY_PLATFORM_WINDOWS
@@ -326,7 +327,7 @@ public:
 	bool         ChangeDisplayResolution(int nNewDisplayWidth, int nNewHDisplayeight, int nNewColDepth, int nNewRefreshHZ, EWindowState previousWindowState, bool bForceReset, CRenderDisplayContext* displayContext);
 	bool         ChangeDisplayResolution(int nNewDisplayWidth, int nNewHDisplayeight, int nNewColDepth, int nNewRefreshHZ, EWindowState previousWindowState, bool bForceReset, const SDisplayContextKey& displayContextKey);
 
-	void         CalculateResolutions(int displayWidthRequested, int displayHeightRequested, bool bUseNativeRes, int* pRenderWidth, int* pRenderHeight, int* pOutputWidth, int* pOutputHeight, int* pDisplayWidth, int* pDisplayHeight);
+	void         CalculateResolutions(int displayWidthRequested, int displayHeightRequested, bool bUseNativeRes, bool findClosestMatching, int* pRenderWidth, int* pRenderHeight, int* pOutputWidth, int* pOutputHeight, int* pDisplayWidth, int* pDisplayHeight);
 
 	bool         ChangeDisplay(CRenderDisplayContext* pDC, unsigned int width, unsigned int height, unsigned int cbpp);
 	void         ChangeViewport(CRenderDisplayContext* pDC, unsigned int viewPortOffsetX, unsigned int viewPortOffsetY, unsigned int viewportWidth, unsigned int viewportHeight);

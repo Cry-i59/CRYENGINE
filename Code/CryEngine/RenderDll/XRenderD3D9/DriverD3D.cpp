@@ -273,16 +273,22 @@ void CD3D9Renderer::ChangeViewport(CRenderDisplayContext* pDC, unsigned int view
 	if (m_bDeviceLost)
 		return;
 
-	SetCurDownscaleFactor(Vec2(1, 1));
+	gRenDev->ExecuteRenderThreadCommand([=]{
+			// This change will propagate to the other dimensions (output and render)
+			// when HandleDisplayPropertyChanges() is called just before rendering
+			pDC->ChangeDisplayResolution(viewPortOffsetX + viewportWidth, viewPortOffsetY + viewportHeight, SRenderViewport(viewPortOffsetX, viewPortOffsetY, viewportWidth, viewportHeight));
 
-	// This change will propagate to the other dimensions (output and render)
-	// when HandleDisplayPropertyChanges() is called just before rendering
-	pDC->ChangeDisplayResolution(viewPortOffsetX + viewportWidth, viewPortOffsetY + viewportHeight, SRenderViewport(viewPortOffsetX, viewPortOffsetY, viewportWidth, viewportHeight));
-
-	if (auto pRenderOutput = pDC->GetRenderOutput().get())
-	{
-		CRendererResources::OnOutputResolutionChanged(pRenderOutput->GetOutputResolution()[0], pRenderOutput->GetOutputResolution()[1]);
-	}
+			if (pDC->IsMainViewport())
+			{
+				SetCurDownscaleFactor(Vec2(1, 1));
+				if (auto pRenderOutput = pDC->GetRenderOutput().get())
+				{
+					CRendererResources::OnOutputResolutionChanged(pDC->GetDisplayResolution()[0], pDC->GetDisplayResolution()[1]);
+					pRenderOutput->ReinspectDisplayContext();
+				}
+			}
+		}, ERenderCommandFlags::None
+	);
 }
 
 void CD3D9Renderer::SetCurDownscaleFactor(Vec2 sf)
@@ -471,7 +477,7 @@ void CD3D9Renderer::RT_ResumeDevice()
 }
 #endif
 
-void CD3D9Renderer::CalculateResolutions(int displayWidthRequested, int displayHeightRequested, bool bUseNativeRes, int* pRenderWidth, int* pRenderHeight, int* pOutputWidth, int* pOutputHeight, int* pDisplayWidth, int* pDisplayHeight)
+void CD3D9Renderer::CalculateResolutions(int displayWidthRequested, int displayHeightRequested, bool bUseNativeRes, bool findClosestMatching, int* pRenderWidth, int* pRenderHeight, int* pOutputWidth, int* pOutputHeight, int* pDisplayWidth, int* pDisplayHeight)
 {
 	CRenderDisplayContext* pDC = GetActiveDisplayContext();
 
@@ -503,11 +509,18 @@ void CD3D9Renderer::CalculateResolutions(int displayWidthRequested, int displayH
 	#elif CRY_PLATFORM_WINDOWS
 		RectI monitorBounds = {};
 		if (pDC->IsSwapChainBacked())
-			monitorBounds = static_cast<CSwapChainBackedRenderDisplayContext*>(pDC)->GetCurrentMonitorBounds();
+			monitorBounds = static_cast<const CSwapChainBackedRenderDisplayContext*>(pDC)->GetCurrentMonitorBounds();
 		else
 		{
 			monitorBounds.w = pDC->GetDisplayResolution().x;
 			monitorBounds.h = pDC->GetDisplayResolution().y;
+		}
+		
+		if (findClosestMatching && pDC->IsSwapChainBacked())
+		{
+			const auto match = static_cast<const CSwapChainBackedRenderDisplayContext*>(pDC)->FindClosestMatchingScreenResolution(Vec2_tpl<uint32_t>{ static_cast<uint32_t>(displayWidthRequested), static_cast<uint32_t>(displayHeightRequested) });
+			displayWidthRequested  = match.x;
+			displayHeightRequested = match.y;
 		}
 
 		*pDisplayWidth  = bUseNativeRes ? monitorBounds.w : displayWidthRequested;
@@ -610,7 +623,7 @@ void CD3D9Renderer::HandleDisplayPropertyChanges()
 		// Tweak, adjust and fudge any of the requested changes
 		int renderWidth, renderHeight, outputWidth, outputHeight, displayWidth, displayHeight;
 
-		CalculateResolutions(displayWidthRequested, displayHeightRequested, bNativeRes, &renderWidth, &renderHeight, &outputWidth, &outputHeight, &displayWidth, &displayHeight);
+		CalculateResolutions(displayWidthRequested, displayHeightRequested, bNativeRes, IsFullscreen(), &renderWidth, &renderHeight, &outputWidth, &outputHeight, &displayWidth, &displayHeight);
 
 		if (!IsEditorMode() && m_pStereoRenderer && m_pStereoRenderer->IsStereoEnabled())
 		{
@@ -5166,6 +5179,7 @@ void CD3D9Renderer::DeleteAuxGeomCBs()
 void CD3D9Renderer::SetCurrentAuxGeomCollector(CAuxGeomCBCollector* auxGeomCollector)
 {
 	m_currentAuxGeomCBCollector = auxGeomCollector;
+	gEnv->pAuxGeomRenderer = m_currentAuxGeomCBCollector->Get(0);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
