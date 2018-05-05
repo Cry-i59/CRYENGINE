@@ -34,13 +34,13 @@ CD3DOpenVRRenderer::CD3DOpenVRRenderer(CryVR::OpenVR::IOpenVRDevice* openVRDevic
 	for (uint32 i = RenderLayer::eQuadLayers_0; i < RenderLayer::eQuadLayers_Headlocked_0; ++i)
 	{
 		m_quadLayerProperties[i].SetType(RenderLayer::eLayer_Quad);
-		m_quadLayerProperties[i].SetPose(QuatTS(Quat(IDENTITY), Vec3(0.f, 0.f, -0.8f), 1.f));
+		m_quadLayerProperties[i].SetPose(QuatTS(Quat(IDENTITY), Vec3(0.f, 0.f, -0.4f), 1.f));
 		m_quadLayerProperties[i].SetId(i);
 	}
 	for (uint32 i = RenderLayer::eQuadLayers_Headlocked_0; i < RenderLayer::eQuadLayers_Total; ++i)
 	{
 		m_quadLayerProperties[i].SetType(RenderLayer::eLayer_Quad_HeadLocked);
-		m_quadLayerProperties[i].SetPose(QuatTS(Quat(IDENTITY), Vec3(0.f, 0.f, -0.8f), 1.f));
+		m_quadLayerProperties[i].SetPose(QuatTS(Quat(IDENTITY), Vec3(0.f, 0.f, -0.4f), 1.f));
 		m_quadLayerProperties[i].SetId(i);
 	}
 }
