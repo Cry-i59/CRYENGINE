@@ -7,6 +7,7 @@
 #include <CrySerialization/Forward.h>
 #include <CrySchematyc/Reflection/TypeDesc.h>
 #include <CrySchematyc/Env/IEnvRegistrar.h>
+#include <CryEntitySystem/IEntitySystem.h>
 
 class CPlugin_CryDefaultEntities;
 
