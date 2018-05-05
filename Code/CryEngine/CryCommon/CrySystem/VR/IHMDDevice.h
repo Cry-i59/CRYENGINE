@@ -274,16 +274,14 @@ protected:
 //! Represents a head-mounted device (Virtual Reality) connected to the system
 struct IHmdDevice
 {
-private:
-	stl::optional<std::pair<Quat, Vec3>> m_orientationForLateCameraInjection;
-
-protected:
-	void OnEndFrame() { m_orientationForLateCameraInjection = stl::nullopt; }
-
 public:
 	enum EInternalUpdate
 	{
 		eInternalUpdate_DebugInfo = 0,
+	};
+	struct IAsyncControllerCallback
+	{
+		virtual void OnAsyncControllerCallback(const HmdPoseState& state, EHmdController controllerId) = 0;
 	};
 
 	virtual void      AddRef() = 0;
@@ -325,7 +323,14 @@ public:
 	//! Can be called from any thread to retrieve most up to date camera transformation
 	virtual stl::optional<Matrix34> RequestAsyncCameraUpdate(int frameId, const Quat& q, const Vec3 &p) = 0;
 
-protected:
-	virtual ~IHmdDevice() noexcept {}
-};
+	// Assign a game side callback to be called asynchronously from any thread to update permanent render object position for objects tied to controllers
+	void SetAsyncControllerCallback(IAsyncControllerCallback* pCallback) { m_pAsyncControllerCallback = pCallback; };
 
+protected:
+	void OnEndFrame() { m_orientationForLateCameraInjection = stl::nullopt; }
+	virtual ~IHmdDevice() noexcept {}
+
+protected:
+	stl::optional<std::pair<Quat, Vec3>> m_orientationForLateCameraInjection;
+	IAsyncControllerCallback* m_pAsyncControllerCallback = nullptr;
+};
