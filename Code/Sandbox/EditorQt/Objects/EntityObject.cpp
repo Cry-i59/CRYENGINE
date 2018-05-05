@@ -95,6 +95,8 @@
 #include <QCollapsibleFrame.h>
 #include <Controls/DictionaryWidget.h>
 
+#include <Serialization/PropertyTree/PropertyRow.h>
+
 REGISTER_CLASS_DESC(CEntityClassDesc);
 
 const char* CEntityObject::s_LensFlarePropertyName("flare_Flare");
@@ -6464,3 +6466,195 @@ REGISTER_PYTHON_COMMAND_WITH_EXAMPLE(PyOpenEntityArchetype, entity, open_archety
                                      "Open archetype in a Entity Archetype editor",
                                      "entity.open_archetype archetypeName");
 
+
+using Serialization::IEntityPicker;
+
+class EntityPickingTool final : public CPickObjectTool
+{
+	DECLARE_DYNCREATE(EntityPickingTool)
+
+	struct SEntityPicker final : IPickObjectCallback
+	{
+		void OnPick(CBaseObject* pObj) override
+		{
+			CRY_ASSERT(static_cast<CEntityObject*>(pObj)->GetIEntity() != nullptr);
+			m_pOwner->OnEntityPicked(*static_cast<CEntityObject*>(pObj)->GetIEntity());
+			GetIEditor()->GetObjectManager()->EmitPopulateInspectorEvent();
+		}
+
+		bool OnPickFilter(CBaseObject* filterObject) override
+		{
+			return filterObject->IsKindOf(RUNTIME_CLASS(CEntityObject)) && m_pOwner->CanPickEntity(*static_cast<CEntityObject*>(filterObject)->GetIEntity());
+		}
+
+		void OnCancelPick() override {}
+
+		Serialization::IEntityPicker* m_pOwner = nullptr;
+	};
+
+public:
+	EntityPickingTool()
+		: CPickObjectTool(&m_picker)
+	{
+	}
+
+	virtual void SetUserData(const char* key, void* userData) override
+	{
+		m_picker.m_pOwner = static_cast<Serialization::IEntityPicker*>(userData);
+	}
+
+private:
+	SEntityPicker m_picker;
+};
+
+IMPLEMENT_DYNCREATE(EntityPickingTool, CPickObjectTool)
+
+class PropertyRowIEntityPicker : public PropertyRow, public IEditorNotifyListener
+{
+public:
+	PropertyRowIEntityPicker() : minimalWidth_()
+	{
+		IEditor* editor = GetIEditor();
+		if (editor)
+			editor->RegisterNotifyListener(this);
+	}
+
+	virtual ~PropertyRowIEntityPicker()
+	{
+		IEditor* editor = GetIEditor();
+		if (editor)
+			editor->UnregisterNotifyListener(this);
+	}
+
+	void OnEditorNotifyEvent(EEditorNotifyEvent event)
+	{
+		if (event == eNotify_OnEditToolEndChange)
+		{
+			// Check tool state.
+			CEditTool* tool = GetIEditor()->GetEditTool();
+			CRuntimeClass* toolClass = 0;
+			if (tool)
+				toolClass = tool->GetRuntimeClass();
+
+			buttonFlags_ &= ~BUTTON_DISABLED;
+
+			if (toolClass != RUNTIME_CLASS(EntityPickingTool))
+			{
+				if (buttonFlags_ & BUTTON_PRESSED)
+				{
+					buttonFlags_ &= ~BUTTON_PRESSED;
+					if (m_pTree)
+						m_pTree->repaint();
+				}
+			}
+			else
+			{
+				if (!(buttonFlags_ & BUTTON_PRESSED))
+				{
+					buttonFlags_ |= BUTTON_PRESSED;
+					if (m_pTree)
+						m_pTree->repaint();
+				}
+			}
+		}
+	}
+
+	bool isLeaf() const override { return true; }
+	bool isStatic() const override { return false; }
+	bool isSelectable() const override { return true; }
+
+	bool onActivate(const PropertyActivationEvent& e) override
+	{
+		if (e.reason == PropertyActivationEvent::REASON_KEYBOARD)
+		{
+			onClicked();
+		}
+		return true;
+	}
+
+	bool onMouseDown(PropertyTree* tree, Point point, bool& changed) override
+	{
+		if (userReadOnly())
+			return false;
+		if (widgetRect(tree).contains(point))
+		{
+			onClicked();
+			tree->repaint();
+			changed = true;
+			return true;
+		}
+		return false;
+	}
+
+	void onClicked()
+	{
+		if (!GetIEditor()->IsDocumentReady())
+		{
+			buttonFlags_ &= ~BUTTON_PRESSED;
+			return;
+		}
+
+		if (buttonFlags_ & BUTTON_PRESSED)
+		{
+			CEditTool* tool = GetIEditor()->GetEditTool();
+			if (tool && tool->GetRuntimeClass() == RUNTIME_CLASS(EntityPickingTool))
+			{
+				GetIEditor()->SetEditTool(0);
+			}
+			return;
+		}
+		else
+		{
+			CEditTool* pNewTool = (CEditTool*)RUNTIME_CLASS(EntityPickingTool)->CreateObject();
+			if (!pNewTool)
+				return;
+
+			pNewTool->SetUserData(nullptr, m_pPicker);
+
+			// Must be last function, can delete this.
+			GetIEditor()->SetEditTool(pNewTool);
+		}
+	}
+
+	void setValueAndContext(const Serialization::SStruct& ser, Serialization::IArchive& ar) override
+	{
+		m_pPicker = static_cast<IEntityPicker*>(ser.pointer());
+	}
+
+	bool            assignTo(const Serialization::SStruct& ser) const override { return true; }
+	wstring         valueAsWString() const override { return L""; }
+	WidgetPlacement widgetPlacement() const override { return WIDGET_INSTEAD_OF_TEXT; }
+	void            serializeValue(Serialization::IArchive& ar) override {}
+
+	int             widgetSizeMin(const PropertyTree* tree) const override
+	{
+		if (minimalWidth_ == 0)
+			minimalWidth_ = (int)tree->ui()->textWidth(labelUndecorated(), property_tree::FONT_NORMAL) + 6;
+		return minimalWidth_;
+	}
+
+	void redraw(IDrawContext& context) override
+	{
+		using namespace property_tree;
+		Rect rect = context.widgetRect.adjusted(-1, -1, 1, 1);
+
+		// silly to initialize PropertyTree here with const crappiness even, but it's the only reliable place that will get called early
+		m_pTree = const_cast<PropertyTree*>(context.tree);
+
+		context.drawButton(rect, labelUndecorated(), buttonFlags_ | BUTTON_CENTER_TEXT, property_tree::FONT_NORMAL);
+	}
+	bool isFullRow(const PropertyTree* tree) const override
+	{
+		if (PropertyRow::isFullRow(tree))
+			return true;
+		return !userFixedWidget();
+	}
+
+protected:
+	mutable int         minimalWidth_;
+	PropertyTree*       m_pTree = nullptr;
+	int                 buttonFlags_ = 0;
+	IEntityPicker*      m_pPicker = nullptr;
+};
+
+REGISTER_PROPERTY_ROW(IEntityPicker, PropertyRowIEntityPicker);
