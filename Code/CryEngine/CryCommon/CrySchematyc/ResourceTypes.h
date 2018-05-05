@@ -57,11 +57,6 @@ template<Serialization::ResourceSelector<string>(* SELECTOR)(string&)> struct SR
 	{
 		return value != rhs.value;
 	}
-
-	inline bool operator!=(const SResourceNameSelector& rhs) const
-	{
-		return value != rhs.value;
-	}
 	
 	string value;
 };
