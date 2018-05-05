@@ -35,6 +35,17 @@ public:
 	virtual uint32                  GetCaps(EHmdController id) const override { return (eCaps_Buttons | eCaps_Tracking | eCaps_Sticks | eCaps_Capacitors); }
 	// ~IHmdController
 
+	EHmdController GetControllerIdFromInternalIndex(vr::TrackedDeviceIndex_t index) 
+	{
+		auto it = std::find(m_controllerMapping.begin(), m_controllerMapping.end(), index);
+		if (it != m_controllerMapping.end())
+		{
+			return static_cast<EHmdController>(std::distance(m_controllerMapping.begin(), it));
+		}
+
+		return EHmdController::eHmdController_OpenVR_MaxNumOpenVRControllers;
+	}
+
 private:
 	friend class Device;
 
@@ -53,6 +64,8 @@ private:
 		uint32           packetNum;
 		HmdTrackingState nativePose;
 		HmdTrackingState localPose;
+		uint64           buttonsPressed;
+		uint64           buttonsTouched;
 		float            trigger;
 		Vec2             touchPad;
 
@@ -77,7 +90,7 @@ private:
 
 	std::array<SInputSymbol*, eKI_Motion_OpenVR_NUM_SYMBOLS> m_symbols;
 	SControllerState         m_state[eHmdController_OpenVR_MaxNumOpenVRControllers];
-	vr::TrackedDeviceIndex_t m_controllerMapping[eHmdController_OpenVR_MaxNumOpenVRControllers];
+	std::array<vr::TrackedDeviceIndex_t, eHmdController_OpenVR_MaxNumOpenVRControllers> m_controllerMapping;
 
 	vr::IVRSystem*           m_pSystem;
 };

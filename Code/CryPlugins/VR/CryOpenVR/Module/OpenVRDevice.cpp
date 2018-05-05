@@ -1019,6 +1019,8 @@ stl::optional<Matrix34> Device::RequestAsyncCameraUpdate(uint64_t frameId, const
 	vr::TrackedDevicePose_t trackedDevicePoses[vr::k_unMaxTrackedDeviceCount];
 	m_system->GetDeviceToAbsoluteTrackingPose(trackingOrigin, timeTillPhotons, trackedDevicePoses, vr::k_unMaxTrackedDeviceCount);
 
+	stl::optional<Matrix34> result = stl::nullopt;
+
 	for (int i=0;i<vr::k_unMaxTrackedDeviceCount;++i)
 	{
 		const auto& trackedDevicePose = trackedDevicePoses[i];
@@ -1036,15 +1038,28 @@ stl::optional<Matrix34> Device::RequestAsyncCameraUpdate(uint64_t frameId, const
 
 				Matrix34 viewMtx(q);
 				viewMtx.SetTranslation(op + p);
+				result = viewMtx;
 
 				m_poseTimestamp = m_predictedRenderPoseTimestamp;
 
-				return viewMtx;
+				if (m_pAsyncControllerCallback == nullptr)
+					break;
+			}
+			if (devClass == vr::ETrackedDeviceClass::TrackedDeviceClass_Controller)
+			{
+				if (m_pAsyncControllerCallback != nullptr)
+				{
+					HmdPoseState worldPose, localPose;
+					CopyPoseState(worldPose, localPose, trackedDevicePose);
+
+					const EHmdController controllerId = m_controller.GetControllerIdFromInternalIndex(i);
+					m_pAsyncControllerCallback->OnAsyncControllerCallback(worldPose, controllerId);
+				}
 			}
 		}
 	}
 
-	return stl::nullopt;
+	return result;
 }
 
 void* Device::GetD3D12EyeTextureData(EEyeType eye, ID3D12Resource *res, ID3D12CommandQueue *queue)
