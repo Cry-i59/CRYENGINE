@@ -629,6 +629,13 @@ bool CEntitySystem::InitEntity(IEntity* pEntity, SEntitySpawnParams& params)
 		return false;
 	}
 
+#ifndef RELEASE
+	if (gEnv->IsEditor() && !gEnv->IsEditing() && !(pCEntity->GetFlags() & ENTITY_FLAG_UNREMOVABLE))
+	{
+		m_entitiesSpawnedDuringEditorGameMode.emplace(pEntity->GetId());
+	}
+#endif
+
 	const std::vector<IEntitySystemSink*>& sinks = m_sinks[stl::static_log2 < (size_t)IEntitySystem::OnSpawn > ::value];
 
 	for (IEntitySystemSink* pSink : sinks)
@@ -771,6 +778,13 @@ void CEntitySystem::RemoveEntity(CEntity* pEntity, bool forceRemoveImmediately, 
 					return;
 				}
 			}
+
+#ifndef RELEASE
+			if (gEnv->IsEditor() && !gEnv->IsEditing() && !(pEntity->GetFlags() & ENTITY_FLAG_UNREMOVABLE))
+			{
+				m_entitiesSpawnedDuringEditorGameMode.erase(pEntity->GetId());
+			}
+#endif
 
 			// Mark the entity for deletion before sending the ENTITY_EVENT_DONE event
 			// This protects against cases where the event results in another deletion request for the same entity
@@ -1668,13 +1682,13 @@ void CEntitySystem::SendEventToAll(SEntityEvent& event)
 //////////////////////////////////////////////////////////////////////////
 void CEntitySystem::OnEditorSimulationModeChanged(EEditorSimulationMode mode)
 {
-	bool bSimulating = mode != EEditorSimulationMode::Editing;
+	bool isSimulating = mode != EEditorSimulationMode::Editing;
 
-	if (bSimulating && m_entitiesPropertyCache)
+	if (isSimulating && m_entitiesPropertyCache)
 	{
 		m_entitiesPropertyCache->StoreEntities();
 	}
-	if (!bSimulating && m_entitiesPropertyCache)
+	if (!isSimulating && m_entitiesPropertyCache)
 	{
 		m_entitiesPropertyCache->RestoreEntities();
 		m_entitiesPropertyCache->ClearCache();
@@ -1685,20 +1699,40 @@ void CEntitySystem::OnEditorSimulationModeChanged(EEditorSimulationMode mode)
 	{
 		if (CEntity* pEntity = *it)
 		{
-			pEntity->OnEditorGameModeChanged(bSimulating);
+			pEntity->OnEditorGameModeChanged(isSimulating);
 		}
 	}
 
 	SEntityEvent event;
 	event.event = ENTITY_EVENT_RESET;
-	event.nParam[0] = bSimulating ? 1 : 0;
+	event.nParam[0] = isSimulating ? 1 : 0;
 	SendEventToAll(event);
 
-	if (bSimulating)
+	if (isSimulating)
 	{
 		event.event = ENTITY_EVENT_START_GAME;
 		SendEventToAll(event);
 	}
+#ifndef RELEASE
+	else
+	{
+		for(const EntityId entityId : m_entitiesSpawnedDuringEditorGameMode)
+		{
+			if (CEntity* pEntity = GetEntityFromID(entityId))
+			{
+				CEntity* pParent = static_cast<CEntity*>(pEntity->GetParent());
+
+				// Childs of irremovable entity are not deleted (Needed for vehicles weapons for example)
+				if (pParent != nullptr && pParent->GetFlags() & ENTITY_FLAG_UNREMOVABLE)
+				{
+					continue;
+				}
+
+				RemoveEntity(entityId, true);
+			}
+		}
+	}
+#endif
 }
 
 //////////////////////////////////////////////////////////////////////////

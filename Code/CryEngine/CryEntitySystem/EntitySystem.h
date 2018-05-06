@@ -358,6 +358,10 @@ private:
 
 	std::unique_ptr<CEntitiesComponentPropertyCache> m_entitiesPropertyCache;
 
+#ifndef RELEASE
+	std::set<EntityId> m_entitiesSpawnedDuringEditorGameMode;
+#endif
+
 public:
 	std::unique_ptr<class CEntityObjectDebugger> m_pEntityObjectDebugger;
 
