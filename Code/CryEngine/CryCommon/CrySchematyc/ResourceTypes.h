@@ -10,6 +10,7 @@
 #include <CrySerialization/Decorators/ResourcesAudio.h>
 #include <CrySerialization/Decorators/ActionButton.h>
 #include <CrySerialization/Decorators/EntityPicker.h>
+#include <CrySerialization/Decorators/Spline.h>
 
 #include <CrySchematyc/Reflection/TypeDesc.h>
 
@@ -301,6 +302,13 @@ inline void ReflectType(CTypeDesc<Serialization::EntityPickerButton>& desc)
 	desc.SetGUID("{ACDC6C14-415D-477C-BB16-9EFA4E084DB8}"_cry_guid);
 	desc.SetLabel("Entity Picker");
 	desc.SetDescription("Picks one or more entities from the current level");
+}
+
+inline void ReflectType(CTypeDesc<Serialization::SplineButton>& desc)
+{
+	desc.SetGUID("{300E8BAE-E211-4097-B2A7-AFE3D32A982E}"_cry_guid);
+	desc.SetLabel("Spline");
+	desc.SetDescription("Allows creation of a spline from Sandbox");
 }
 
 } // Schematyc

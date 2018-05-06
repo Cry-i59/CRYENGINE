@@ -2,27 +2,14 @@
 
 #pragma once
 
+#include <CrySerialization/Decorators/Spline.h>
+#include <Gizmos/ITransformManipulator.h>
+#include <Viewport.h>
+
 const float kSplinePointSelectionRadius = 0.8f;
 
-// Spline Point
-struct CSplinePoint
-{
-	Vec3  pos;
-	Vec3  back;
-	Vec3  forw;
-	float angle;
-	float width;
-	bool  isDefaultWidth;
-	CSplinePoint()
-	{
-		angle = 0;
-		width = 0;
-		isDefaultWidth = true;
-	}
-};
-
 //////////////////////////////////////////////////////////////////////////
-class CSplineObject : public CBaseObject
+class CSplineObject : public CBaseObject, public Serialization::ISpline
 {
 protected:
 	CSplineObject();
@@ -31,26 +18,13 @@ public:
 	virtual void  SetPoint(int index, const Vec3& pos);
 	int           InsertPoint(int index, const Vec3& point);
 	void          RemovePoint(int index);
-	int           GetPointCount() const     { return m_points.size(); }
-	const Vec3&   GetPoint(int index) const { return m_points[index].pos; }
-	Vec3          GetBezierPos(int index, float t) const;
-	float         GetBezierSegmentLength(int index, float t = 1.0f) const;
-	Vec3          GetBezierNormal(int index, float t) const;
-	Vec3          GetLocalBezierNormal(int index, float t) const;
-	Vec3          GetBezierTangent(int index, float t) const;
-	int           GetNearestPoint(const Vec3& raySrc, const Vec3& rayDir, float& distance);
-	float         GetSplineLength() const;
-	float         GetPosByDistance(float distance, int& outIndex) const;
-
+	
 	float         GetPointAngle() const;
 	void          SetPointAngle(float angle);
 	float         GetPointWidth() const;
 	void          SetPointWidth(float width);
 	bool          IsPointDefaultWidth() const;
 	void          PointDafaultWidthIs(bool isDefault);
-
-	void          SelectPoint(int index);
-	int           GetSelectedPoint() const     { return m_selectedPoint; }
 
 	void          SetEditMode(bool isEditMode) { m_isEditMode = isEditMode; }
 
@@ -61,8 +35,6 @@ public:
 
 	void          CalcBBox();
 	virtual float CreationZOffset() const { return 0.1f; }
-
-	void          GetNearestEdge(const Vec3& raySrc, const Vec3& rayDir, int& p1, int& p2, float& distance, Vec3& intersectPoint);
 
 	virtual void  OnUpdate()                  {}
 	virtual void  SetLayerId(uint16 nLayerId) {}
@@ -79,12 +51,8 @@ protected:
 	bool          RayToLineDistance(const Vec3& rayLineP1, const Vec3& rayLineP2, const Vec3& pi, const Vec3& pj, float& distance, Vec3& intPnt);
 
 	virtual int   GetMaxPoints() const { return 1000; }
-	virtual int   GetMinPoints() const { return 2; }
 	virtual float GetWidth() const     { return 0.0f; }
 	virtual float GetStepSize() const  { return 1.0f; }
-
-	void          BezierCorrection(int index);
-	void          BezierAnglesCorrection(int index);
 
 	// from CBaseObject
 	bool         Init(CBaseObject* prev, const string& file) override;
@@ -104,14 +72,61 @@ protected:
 
 	void         EditSpline();
 
+	// Serialization::ISpline
+	virtual CryGUID GetOwnerInstanceGUID() const override { return GetId(); }
+
+	virtual void StartEditing() override 
+	{
+		SetEditMode(true);
+	}
+
+	virtual void StopEditing() override
+	{
+		SetEditMode(false);
+	}
+
+	virtual Matrix34 GetWorldTransform() const override { return GetWorldTM(); }
+
+	virtual void RemovePointByIndex(int index) override
+	{
+		if (index == GetSelectedPoint())
+		{
+			SelectPoint(-1);
+		}
+		RemovePoint(index);
+	}
+
+	virtual int InsertNewPoint(int index, const Vec3& position) override
+	{
+		int usedIndex = InsertPoint(index, position);
+		SelectPoint(usedIndex);
+
+		return usedIndex;
+	}
+
+	virtual void UpdatePointByIndex(int index, const Vec3& newPosition) override
+	{
+		SetPoint(index, newPosition);
+	}
+
+	virtual void OnMovePoint() override
+	{
+		CalcBBox();
+		OnUpdate();
+	}
+
+	virtual void OnSelectedPointChanged() override
+	{
+		OnUpdateUI();
+	}
+	// ~Serialization::ISpline
+
 protected:
 	void         SerializeProperties(Serialization::IArchive& ar, bool bMultiEdit);
 
 protected:
-	std::vector<CSplinePoint>  m_points;
 	AABB                       m_bbox;
 
-	int                        m_selectedPoint;
 	int                        m_mergeIndex;
 
 	bool                       m_isEditMode;
@@ -120,3 +135,54 @@ protected:
 	static int                 m_splineRollupID;
 };
 
+class CEditSplineObjectTool : public CEditTool, public ITransformManipulatorOwner
+{
+public:
+	DECLARE_DYNCREATE(CEditSplineObjectTool)
+
+	CEditSplineObjectTool() :
+		m_pSpline(0),
+		m_currPoint(-1),
+		m_modifying(false),
+		m_curCursor(STD_CURSOR_DEFAULT),
+		m_pManipulator(nullptr)
+	{}
+
+	// Ovverides from CEditTool
+	virtual string GetDisplayName() const override { return "Edit Spline"; }
+	bool           MouseCallback(CViewport* view, EMouseEvent event, CPoint& point, int flags);
+	void           OnManipulatorDrag(IDisplayViewport* pView, ITransformManipulator* pManipulator, const Vec2i& point0, const Vec3& value, int flags);
+	void           OnManipulatorBegin(IDisplayViewport* view, ITransformManipulator* pManipulator, const Vec2i& point, int flags);
+	void           OnManipulatorEnd(IDisplayViewport* view, ITransformManipulator* pManipulator);
+
+	virtual void   SetUserData(const char* key, void* userData);
+
+	virtual void   Display(DisplayContext& dc) {}
+	virtual bool   OnKeyDown(CViewport* view, uint32 nChar, uint32 nRepCnt, uint32 nFlags);
+
+	bool           IsNeedMoveTool() override { return true; }
+
+	void           OnSplineEvent(CBaseObject* pObj, int evt);
+
+	// ITransformManipulatorOwner
+	virtual void GetManipulatorPosition(Vec3& position) override;
+	virtual bool IsManipulatorVisible() override;
+
+protected:
+	virtual ~CEditSplineObjectTool();
+	void DeleteThis() { delete this; }
+
+	void SelectPoint(int index);
+	void SetCursor(EStdCursor cursor, bool bForce = false);
+
+	CBaseObject* GetSplineObject() const { return GetIEditor()->GetObjectManager()->FindObject(m_pSpline->GetOwnerInstanceGUID()); }
+
+private:
+	Serialization::ISpline* m_pSpline;
+	int                     m_currPoint;
+	bool                    m_modifying;
+	CPoint                  m_mouseDownPos;
+	Vec3                    m_pointPos;
+	EStdCursor              m_curCursor;
+	ITransformManipulator*  m_pManipulator;
+};

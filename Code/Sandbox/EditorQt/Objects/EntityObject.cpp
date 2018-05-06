@@ -2,6 +2,7 @@
 
 #include "StdAfx.h"
 #include "EntityObject.h"
+#include "SplineObject.h"
 
 #include "Viewport.h"
 #include <Preferences/ViewportPreferences.h>
@@ -48,6 +49,7 @@
 #include "Serialization/Decorators/EditorActionButton.h"
 #include <Serialization/Decorators/EntityLink.h>
 #include <Serialization/Decorators/EditToolButton.h>
+#include <CrySerialization/Decorators/Spline.h>
 
 #include "Controls/PropertyItem.h"
 #include "Controls/DynamicPopupMenu.h"
@@ -5132,6 +5134,105 @@ IRenderNode* CEntityObject::GetEngineNode() const
 	return NULL;
 }
 
+class CUndoEntityObject final : public CUndoBaseObject
+{
+	struct SCachedComponent
+	{
+		CryGUID componentInstanceGUID;
+		std::unique_ptr<Schematyc::CClassProperties> pProperties;
+	};
+
+public:
+	CUndoEntityObject(CEntityObject* pObject, const char* undoDescription)
+		: CUndoBaseObject(pObject, undoDescription)
+	{
+		CacheProperties(pObject, m_cachedProperties);
+	}
+
+	virtual int         GetSize() override { return sizeof(*this); }
+
+	virtual void        Undo(bool bUndo) override
+	{
+		CUndoBaseObject::Undo(bUndo);
+
+		CEntityObject* pObject = static_cast<CEntityObject*>(GetIEditor()->GetObjectManager()->FindObject(m_guid));
+		IEntity* pEntity = pObject->GetIEntity();
+
+		CacheProperties(pObject, m_cachedPropertiesRedo);
+
+		for (const SCachedComponent& cachedComponent : m_cachedProperties)
+		{
+			IEntityComponent* pComponent = pEntity->GetComponentByGUID(cachedComponent.componentInstanceGUID);
+			if (pComponent == nullptr)
+				continue;
+
+			RestoreComponentProperties(pComponent, *cachedComponent.pProperties.get());
+		}
+	}
+	virtual void        Redo() override
+	{
+		CUndoBaseObject::Redo();
+
+		CEntityObject* pObject = static_cast<CEntityObject*>(GetIEditor()->GetObjectManager()->FindObject(m_guid));
+		IEntity* pEntity = pObject->GetIEntity();
+
+		for (const SCachedComponent& cachedComponent : m_cachedPropertiesRedo)
+		{
+			IEntityComponent* pComponent = pEntity->GetComponentByGUID(cachedComponent.componentInstanceGUID);
+			if (pComponent == nullptr)
+				continue;
+
+			RestoreComponentProperties(pComponent, *cachedComponent.pProperties.get());
+		}
+	}
+
+protected:
+	void RestoreComponentProperties(IEntityComponent* pComponent, const Schematyc::CClassProperties& properties)
+	{
+		bool membersChanged = !properties.Compare(pComponent->GetClassDesc(), pComponent);
+		if (membersChanged)
+		{
+			// Restore members from the previously recorded class properties
+			properties.Apply(pComponent->GetClassDesc(), pComponent);
+			// Notify this component about changed property.
+			SEntityEvent entityEvent(ENTITY_EVENT_COMPONENT_PROPERTY_CHANGED);
+			pComponent->SendEvent(entityEvent);
+		}
+	}
+
+	void CacheProperties(CEntityObject* pObject, std::vector<SCachedComponent>& destinationVector)
+	{
+		IEntity* pEntity = pObject->GetIEntity();
+
+		destinationVector.reserve(pEntity->GetComponentsCount());
+
+		pEntity->VisitComponents([&destinationVector](IEntityComponent* pComponent)
+		{
+			std::unique_ptr<Schematyc::CClassProperties> pClassProperties(new Schematyc::CClassProperties());
+			pClassProperties->Read(pComponent->GetClassDesc(), pComponent);
+
+			destinationVector.emplace_back(SCachedComponent{ pComponent->GetGUID(), std::move(pClassProperties) });
+		});
+	}
+
+protected:
+	std::vector<SCachedComponent> m_cachedProperties;
+	std::vector<SCachedComponent> m_cachedPropertiesRedo;
+};
+
+void CEntityObject::StoreUndo(const char* undoDescription, bool minimal, int flags)
+{
+	if (CUndo::IsRecording())
+	{
+		if (IsLegacyObject())
+		{
+			return CBaseObject::StoreUndo(undoDescription, minimal, flags);
+		}
+
+		return CUndo::Record(new CUndoEntityObject(this, undoDescription));
+	}
+}
+
 void CEntityObject::OnMenuCreateFlowGraph()
 {
 	CreateFlowGraphWithGroupDialog();
@@ -6466,65 +6567,24 @@ REGISTER_PYTHON_COMMAND_WITH_EXAMPLE(PyOpenEntityArchetype, entity, open_archety
                                      "Open archetype in a Entity Archetype editor",
                                      "entity.open_archetype archetypeName");
 
-
-using Serialization::IEntityPicker;
-
-class EntityPickingTool final : public CPickObjectTool
-{
-	DECLARE_DYNCREATE(EntityPickingTool)
-
-	struct SEntityPicker final : IPickObjectCallback
-	{
-		void OnPick(CBaseObject* pObj) override
-		{
-			CRY_ASSERT(static_cast<CEntityObject*>(pObj)->GetIEntity() != nullptr);
-			m_pOwner->OnEntityPicked(*static_cast<CEntityObject*>(pObj)->GetIEntity());
-			GetIEditor()->GetObjectManager()->EmitPopulateInspectorEvent();
-		}
-
-		bool OnPickFilter(CBaseObject* filterObject) override
-		{
-			return filterObject->IsKindOf(RUNTIME_CLASS(CEntityObject)) && m_pOwner->CanPickEntity(*static_cast<CEntityObject*>(filterObject)->GetIEntity());
-		}
-
-		void OnCancelPick() override {}
-
-		Serialization::IEntityPicker* m_pOwner = nullptr;
-	};
-
-public:
-	EntityPickingTool()
-		: CPickObjectTool(&m_picker)
-	{
-	}
-
-	virtual void SetUserData(const char* key, void* userData) override
-	{
-		m_picker.m_pOwner = static_cast<Serialization::IEntityPicker*>(userData);
-	}
-
-private:
-	SEntityPicker m_picker;
-};
-
-IMPLEMENT_DYNCREATE(EntityPickingTool, CPickObjectTool)
-
-class PropertyRowIEntityPicker : public PropertyRow, public IEditorNotifyListener
+class EntityPropertyRowBase : public PropertyRow, public IEditorNotifyListener
 {
 public:
-	PropertyRowIEntityPicker() : minimalWidth_()
+	EntityPropertyRowBase() : minimalWidth_()
 	{
 		IEditor* editor = GetIEditor();
 		if (editor)
 			editor->RegisterNotifyListener(this);
 	}
 
-	virtual ~PropertyRowIEntityPicker()
+	virtual ~EntityPropertyRowBase()
 	{
 		IEditor* editor = GetIEditor();
 		if (editor)
 			editor->UnregisterNotifyListener(this);
 	}
+
+	virtual CRuntimeClass* GetToolClass() const = 0;
 
 	void OnEditorNotifyEvent(EEditorNotifyEvent event)
 	{
@@ -6538,7 +6598,7 @@ public:
 
 			buttonFlags_ &= ~BUTTON_DISABLED;
 
-			if (toolClass != RUNTIME_CLASS(EntityPickingTool))
+			if (toolClass != GetToolClass())
 			{
 				if (buttonFlags_ & BUTTON_PRESSED)
 				{
@@ -6597,7 +6657,7 @@ public:
 		if (buttonFlags_ & BUTTON_PRESSED)
 		{
 			CEditTool* tool = GetIEditor()->GetEditTool();
-			if (tool && tool->GetRuntimeClass() == RUNTIME_CLASS(EntityPickingTool))
+			if (tool && tool->GetRuntimeClass() == GetToolClass())
 			{
 				GetIEditor()->SetEditTool(0);
 			}
@@ -6605,11 +6665,11 @@ public:
 		}
 		else
 		{
-			CEditTool* pNewTool = (CEditTool*)RUNTIME_CLASS(EntityPickingTool)->CreateObject();
+			CEditTool* pNewTool = (CEditTool*)GetToolClass()->CreateObject();
 			if (!pNewTool)
 				return;
 
-			pNewTool->SetUserData(nullptr, m_pPicker);
+			pNewTool->SetUserData(nullptr, m_pUserData);
 
 			// Must be last function, can delete this.
 			GetIEditor()->SetEditTool(pNewTool);
@@ -6618,7 +6678,7 @@ public:
 
 	void setValueAndContext(const Serialization::SStruct& ser, Serialization::IArchive& ar) override
 	{
-		m_pPicker = static_cast<IEntityPicker*>(ser.pointer());
+		m_pUserData = ser.pointer();
 	}
 
 	bool            assignTo(const Serialization::SStruct& ser) const override { return true; }
@@ -6654,7 +6714,73 @@ protected:
 	mutable int         minimalWidth_;
 	PropertyTree*       m_pTree = nullptr;
 	int                 buttonFlags_ = 0;
-	IEntityPicker*      m_pPicker = nullptr;
+	void*               m_pUserData = nullptr;
 };
 
-REGISTER_PROPERTY_ROW(IEntityPicker, PropertyRowIEntityPicker);
+namespace EntityPicker
+{
+	using Serialization::IEntityPicker;
+
+	class EntityPickingTool final : public CPickObjectTool
+	{
+		DECLARE_DYNCREATE(EntityPickingTool)
+
+		struct SEntityPicker final : IPickObjectCallback
+		{
+			void OnPick(CBaseObject* pObj) override
+			{
+				CRY_ASSERT(static_cast<CEntityObject*>(pObj)->GetIEntity() != nullptr);
+				m_pOwner->OnEntityPicked(*static_cast<CEntityObject*>(pObj)->GetIEntity());
+				GetIEditor()->GetObjectManager()->EmitPopulateInspectorEvent();
+			}
+
+			bool OnPickFilter(CBaseObject* filterObject) override
+			{
+				return filterObject->IsKindOf(RUNTIME_CLASS(CEntityObject)) && m_pOwner->CanPickEntity(*static_cast<CEntityObject*>(filterObject)->GetIEntity());
+			}
+
+			void OnCancelPick() override {}
+
+			Serialization::IEntityPicker* m_pOwner = nullptr;
+		};
+
+	public:
+		EntityPickingTool()
+			: CPickObjectTool(&m_picker)
+		{
+		}
+
+		virtual void SetUserData(const char* key, void* userData) override
+		{
+			m_picker.m_pOwner = static_cast<Serialization::IEntityPicker*>(userData);
+		}
+
+	private:
+		SEntityPicker m_picker;
+	};
+
+	IMPLEMENT_DYNCREATE(EntityPickingTool, CPickObjectTool)
+
+	class PropertyRowIEntityPicker : public EntityPropertyRowBase
+	{
+	public:
+		virtual ~PropertyRowIEntityPicker() = default;
+		virtual CRuntimeClass* GetToolClass() const override { return RUNTIME_CLASS(EntityPickingTool); }
+	};
+
+	REGISTER_PROPERTY_ROW(IEntityPicker, PropertyRowIEntityPicker);
+}
+
+namespace EntitySpline
+{
+	using Serialization::ISpline;
+
+	class PropertyRowISpline : public EntityPropertyRowBase
+	{
+	public:
+		virtual ~PropertyRowISpline() = default;
+		virtual CRuntimeClass* GetToolClass() const override { return RUNTIME_CLASS(CEditSplineObjectTool); }
+	};
+
+	REGISTER_PROPERTY_ROW(ISpline, PropertyRowISpline);
+}

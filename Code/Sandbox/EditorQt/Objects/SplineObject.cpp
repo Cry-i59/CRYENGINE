@@ -12,77 +12,30 @@
 #include "Controls/DynamicPopupMenu.h"
 
 //////////////////////////////////////////////////////////////////////////
-// CEditSplineObjectTool
-
-class CEditSplineObjectTool : public CEditTool, public ITransformManipulatorOwner
-{
-public:
-	DECLARE_DYNCREATE(CEditSplineObjectTool)
-
-	CEditSplineObjectTool() :
-		m_pSpline(0),
-		m_currPoint(-1),
-		m_modifying(false),
-		m_curCursor(STD_CURSOR_DEFAULT),
-		m_pManipulator(nullptr)
-	{}
-
-	// Ovverides from CEditTool
-	virtual string GetDisplayName() const override { return "Edit Spline"; }
-	bool           MouseCallback(CViewport* view, EMouseEvent event, CPoint& point, int flags);
-	void           OnManipulatorDrag(IDisplayViewport* pView, ITransformManipulator* pManipulator, const Vec2i& point0, const Vec3& value, int flags);
-	void           OnManipulatorBegin(IDisplayViewport* view, ITransformManipulator* pManipulator, const Vec2i& point, int flags);
-	void           OnManipulatorEnd(IDisplayViewport* view, ITransformManipulator* pManipulator);
-
-	virtual void   SetUserData(const char* key, void* userData);
-
-	virtual void   Display(DisplayContext& dc) {}
-	virtual bool   OnKeyDown(CViewport* view, uint32 nChar, uint32 nRepCnt, uint32 nFlags);
-
-	bool           IsNeedMoveTool() override                 { return true; }
-
-	void           OnSplineEvent(CBaseObject* pObj, int evt);
-
-	// ITransformManipulatorOwner
-	virtual void GetManipulatorPosition(Vec3& position) override;
-	virtual bool IsManipulatorVisible() override;
-
-protected:
-	virtual ~CEditSplineObjectTool();
-	void DeleteThis() { delete this; }
-
-	void SelectPoint(int index);
-	void SetCursor(EStdCursor cursor, bool bForce = false);
-
-private:
-	CSplineObject*         m_pSpline;
-	int                    m_currPoint;
-	bool                   m_modifying;
-	CPoint                 m_mouseDownPos;
-	Vec3                   m_pointPos;
-	EStdCursor             m_curCursor;
-	ITransformManipulator* m_pManipulator;
-};
-
-//////////////////////////////////////////////////////////////////////////
 IMPLEMENT_DYNCREATE(CEditSplineObjectTool, CEditTool)
 
 //////////////////////////////////////////////////////////////////////////
 void CEditSplineObjectTool::SetUserData(const char* key, void* userData)
 {
-	m_pSpline = (CSplineObject*)userData;
+	m_pSpline = reinterpret_cast<Serialization::ISpline*>(userData);
 	assert(m_pSpline != 0);
 
-	m_pSpline->SetEditMode(true);
+	m_pSpline->StartEditing();
+
+	CBaseObject* pSplineObject = GetSplineObject();
+	CRY_ASSERT(pSplineObject != nullptr);
 
 	// Modify Spline undo.
 	if (!CUndo::IsRecording())
 	{
 		CUndo("Modify Spline");
-		m_pSpline->StoreUndo("Spline Modify");
+		pSplineObject->StoreUndo("Spline Modify");
 	}
 
-	m_pSpline->AddEventListener(functor(*this, &CEditSplineObjectTool::OnSplineEvent));
+	if (pSplineObject->GetRuntimeClass()->IsDerivedFrom(RUNTIME_CLASS(CSplineObject)))
+	{
+		static_cast<CSplineObject*>(m_pSpline)->AddEventListener(functor(*this, &CEditSplineObjectTool::OnSplineEvent));
+	}
 
 	if (GetIEditorImpl()->GetEditMode() == eEditModeSelect)
 	{
@@ -99,19 +52,12 @@ void CEditSplineObjectTool::SetUserData(const char* key, void* userData)
 
 void CEditSplineObjectTool::GetManipulatorPosition(Vec3& position)
 {
-	const Matrix34& wtm = m_pSpline->GetWorldTM();
-	int index = m_pSpline->GetSelectedPoint();
-	position = wtm * m_pSpline->GetPoint(index);
+	position = m_pSpline->GetSelectedPointWorldPosition();
 }
 
 bool CEditSplineObjectTool::IsManipulatorVisible()
 {
-	if (m_pSpline)
-	{
-		return m_pSpline->GetSelectedPoint() != -1;
-	}
-
-	return false;
+	return m_pSpline != nullptr ? m_pSpline->HasSelectedPoint() : false;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -119,10 +65,16 @@ CEditSplineObjectTool::~CEditSplineObjectTool()
 {
 	if (m_pSpline)
 	{
-		m_pSpline->SetEditMode(false);
+		m_pSpline->StopEditing();
 		SelectPoint(-1);
-		m_pSpline->RemoveEventListener(functor(*this, &CEditSplineObjectTool::OnSplineEvent));
 
+		CBaseObject* pSplineObject = GetSplineObject();
+		CRY_ASSERT(pSplineObject != nullptr);
+
+		if (pSplineObject->GetRuntimeClass()->IsDerivedFrom(RUNTIME_CLASS(CSplineObject)))
+		{
+			static_cast<CSplineObject*>(m_pSpline)->RemoveEventListener(functor(*this, &CEditSplineObjectTool::OnSplineEvent));
+		}
 	}
 	if (GetIEditorImpl()->GetIUndoManager()->IsUndoRecording())
 		GetIEditorImpl()->GetIUndoManager()->Cancel();
@@ -149,9 +101,7 @@ bool CEditSplineObjectTool::OnKeyDown(CViewport* view, uint32 nChar, uint32 nRep
 		int index = m_pSpline->GetSelectedPoint();
 		if (index >= 0)
 		{
-			CUndo undo("Remove Spline Point");
-			m_pSpline->SelectPoint(-1);
-			m_pSpline->RemovePoint(index);
+			m_pSpline->RemovePointByIndex(index);
 
 			if (m_pManipulator)
 			{
@@ -198,27 +148,30 @@ void CEditSplineObjectTool::OnManipulatorDrag(IDisplayViewport* pView, ITransfor
 	if (editMode == eEditModeMove)
 	{
 		GetIEditorImpl()->GetIUndoManager()->Restore();
-		const Matrix34& splineTM = m_pSpline->GetWorldTM();
+		const Matrix34 splineTM = m_pSpline->GetWorldTransform();
 		Matrix34 invSplineTM = splineTM;
 		invSplineTM.Invert();
-
+		
 		int index = m_pSpline->GetSelectedPoint();
 		Vec3 pos = m_pSpline->GetPoint(index);
 
 		Vec3 wp = splineTM.TransformPoint(pos);
 		Vec3 newPos = wp + value;
-
+		
 		if (!GetAsyncKeyState(VK_CONTROL) && GetIEditorImpl()->IsSnapToTerrainEnabled())
 		{
 			float height = wp.z - GetIEditorImpl()->GetTerrainElevation(wp.x, wp.y);
 			newPos.z = GetIEditorImpl()->GetTerrainElevation(newPos.x, newPos.y) + height;
 		}
 
-		if (GetIEditorImpl()->GetIUndoManager()->IsUndoRecording())
-			m_pSpline->StoreUndo("Move Point");
-
 		newPos = invSplineTM.TransformPoint(newPos);
-		m_pSpline->SetPoint(m_pSpline->GetSelectedPoint(), newPos);
+
+		CBaseObject* pSplineObject = GetSplineObject();
+		CRY_ASSERT(pSplineObject != nullptr);
+
+		if (GetIEditorImpl()->GetIUndoManager()->IsUndoRecording())
+			pSplineObject->StoreUndo("Move Point");
+		m_pSpline->UpdatePointByIndex(m_pSpline->GetSelectedPoint(), newPos);
 
 		if (m_pManipulator)
 		{
@@ -235,8 +188,7 @@ void CEditSplineObjectTool::OnManipulatorBegin(IDisplayViewport* view, ITransfor
 	{
 		m_modifying = true;
 		// Accept changes.
-		m_pSpline->CalcBBox(); // TODO: Avoid and make CalcBBox() private
-		m_pSpline->OnUpdate();
+		m_pSpline->OnMovePoint();
 
 		m_modifying = false;
 	}
@@ -250,8 +202,7 @@ void CEditSplineObjectTool::OnManipulatorEnd(IDisplayViewport* view, ITransformM
 	{
 		m_modifying = true;
 		// Accept changes.
-		m_pSpline->CalcBBox(); // TODO: Avoid and make CalcBBox() private
-		m_pSpline->OnUpdate();
+		m_pSpline->OnMovePoint();
 
 		m_modifying = false;
 	}
@@ -272,8 +223,7 @@ bool CEditSplineObjectTool::MouseCallback(CViewport* view, EMouseEvent event, CP
 
 	if (event == eMouseLDown || event == eMouseMove || event == eMouseLDblClick || event == eMouseLUp)
 	{
-
-		const Matrix34& splineTM = m_pSpline->GetWorldTM();
+		const Matrix34 splineTM = m_pSpline->GetWorldTransform();
 
 		Vec3 raySrc, rayDir;
 		view->ViewToWorldRay(point, raySrc, rayDir);
@@ -296,10 +246,7 @@ bool CEditSplineObjectTool::MouseCallback(CViewport* view, EMouseEvent event, CP
 				if (event == eMouseLDown)
 				{
 					m_modifying = true;
-					CUndo undo("Spline Make Point");
-					if (GetIEditorImpl()->GetIUndoManager()->IsUndoRecording())
-						m_pSpline->StoreUndo("Make Point");
-
+					
 					// If last edge, insert at end.
 					if (p2 == 0)
 						p2 = -1;
@@ -308,8 +255,14 @@ bool CEditSplineObjectTool::MouseCallback(CViewport* view, EMouseEvent event, CP
 					// Put intPnt into local space of Spline.
 					intPnt = splineTM.GetInverted().TransformPoint(intPnt);
 
-					int index = m_pSpline->InsertPoint(p2, intPnt);
-					SelectPoint(index);
+					CBaseObject* pSplineObject = GetSplineObject();
+					CRY_ASSERT(pSplineObject != nullptr);
+
+					CUndo undo("Spline Make Point");
+					if (GetIEditorImpl()->GetIUndoManager()->IsUndoRecording())
+						pSplineObject->StoreUndo("Make Point");
+
+					int index = m_pSpline->InsertNewPoint(p2, intPnt);
 
 					// Set construction plane for view.
 					m_pointPos = splineTM.TransformPoint(m_pSpline->GetPoint(index));
@@ -345,9 +298,9 @@ bool CEditSplineObjectTool::MouseCallback(CViewport* view, EMouseEvent event, CP
 
 			if (event == eMouseLDblClick)
 			{
-				CUndo undo("Remove Spline Point");
 				m_modifying = false;
-				m_pSpline->RemovePoint(index);
+				CUndo undo("Remove Spline Point");
+				m_pSpline->RemovePointByIndex(index);
 				SelectPoint(-1);
 			}
 		}
@@ -653,21 +606,10 @@ IMPLEMENT_DYNAMIC(CSplineObject, CBaseObject);
 
 //////////////////////////////////////////////////////////////////////////
 CSplineObject::CSplineObject() :
-	m_selectedPoint(-1),
 	m_mergeIndex(-1),
 	m_isEditMode(false)
 {
 	m_bbox.min = m_bbox.max = Vec3(0, 0, 0);
-}
-
-//////////////////////////////////////////////////////////////////////////
-void CSplineObject::SelectPoint(int index)
-{
-	if (m_selectedPoint == index)
-		return;
-
-	m_selectedPoint = index;
-	OnUpdateUI();
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -701,20 +643,12 @@ int CSplineObject::InsertPoint(int index, const Vec3& point)
 
 	if (index < 0 || index >= GetPointCount())
 	{
-		CSplinePoint pt;
-		pt.pos = point;
-		pt.back = point;
-		pt.forw = point;
-		m_points.push_back(pt);
+		m_points.emplace_back(point);
 		newindex = GetPointCount() - 1;
 	}
 	else
 	{
-		CSplinePoint pt;
-		pt.pos = point;
-		pt.back = point;
-		pt.forw = point;
-		m_points.insert(m_points.begin() + index, pt);
+		m_points.emplace(m_points.begin() + index, point);
 		newindex = index;
 	}
 	SetPoint(newindex, point);
@@ -732,225 +666,6 @@ void CSplineObject::RemovePoint(int index)
 		CalcBBox();
 		OnUpdate();
 		OnUpdateUI();
-	}
-}
-
-//////////////////////////////////////////////////////////////////////////
-Vec3 CSplineObject::GetBezierPos(int index, float t) const
-{
-	float invt = 1.0f - t;
-	return m_points[index].pos * (invt * invt * invt) +
-	       m_points[index].forw * (3 * t * invt * invt) +
-	       m_points[index + 1].back * (3 * t * t * invt) +
-	       m_points[index + 1].pos * (t * t * t);
-}
-
-//////////////////////////////////////////////////////////////////////////
-Vec3 CSplineObject::GetBezierTangent(int index, float t) const
-{
-	float invt = 1.0f - t;
-	Vec3 tan = -m_points[index].pos * (invt * invt)
-	           + m_points[index].forw * (invt * (invt - 2 * t))
-	           + m_points[index + 1].back * (t * (2 * invt - t))
-	           + m_points[index + 1].pos * (t * t);
-
-	if (!tan.IsZero())
-		tan.Normalize();
-
-	return tan;
-}
-
-//////////////////////////////////////////////////////////////////////////
-float CSplineObject::GetBezierSegmentLength(int index, float t) const
-{
-	const int kSteps = 32;
-	float kn = t * kSteps + 1.0f;
-	float fRet = 0.0f;
-
-	Vec3 pos = GetBezierPos(index, 0.0f);
-	for (float k = 1.0f; k <= kn; k += 1.0f)
-	{
-		Vec3 nextPos = GetBezierPos(index, t * k / kn);
-		fRet += (nextPos - pos).GetLength();
-		pos = nextPos;
-	}
-	return fRet;
-}
-
-//////////////////////////////////////////////////////////////////////////
-float CSplineObject::GetSplineLength() const
-{
-	float fRet = 0.f;
-	for (int i = 0, numSegments = GetPointCount() - 1; i < numSegments; ++i)
-	{
-		fRet += GetBezierSegmentLength(i);
-	}
-	return fRet;
-}
-
-//////////////////////////////////////////////////////////////////////////
-float CSplineObject::GetPosByDistance(float distance, int& outIndex) const
-{
-	float lenPos = 0.0f;
-	int index = 0;
-	float segmentLength = 0.0f;
-	for (int numSegments = GetPointCount() - 1; index < numSegments; ++index)
-	{
-		segmentLength = GetBezierSegmentLength(index);
-		if (lenPos + segmentLength > distance)
-			break;
-		lenPos += segmentLength;
-	}
-
-	outIndex = index;
-	return segmentLength > 0.0f ? (distance - lenPos) / segmentLength : 0.0f;
-}
-
-//////////////////////////////////////////////////////////////////////////
-Vec3 CSplineObject::GetBezierNormal(int index, float t) const
-{
-	float kof = 0.0f;
-	int i = index;
-
-	if (index >= GetPointCount() - 1)
-	{
-		kof = 1.0f;
-		i = GetPointCount() - 2;
-		if (i < 0)
-			return Vec3(0, 0, 0);
-	}
-
-	const Matrix34& wtm = GetWorldTM();
-	Vec3 p0 = wtm.TransformPoint(GetBezierPos(i, t + 0.0001f + kof));
-	Vec3 p1 = wtm.TransformPoint(GetBezierPos(i, t - 0.0001f + kof));
-
-	Vec3 e = p0 - p1;
-	Vec3 n = e.Cross(Vec3(0, 0, 1));
-
-	if (n.x > 0.00001f || n.x < -0.00001f || n.y > 0.00001f || n.y < -0.00001f || n.z > 0.00001f || n.z < -0.00001f)
-		n.Normalize();
-	return n;
-}
-
-//////////////////////////////////////////////////////////////////////////
-Vec3 CSplineObject::GetLocalBezierNormal(int index, float t) const
-{
-	float kof = t;
-	int i = index;
-
-	if (index >= GetPointCount() - 1)
-	{
-		kof = 1.0f + t;
-		i = GetPointCount() - 2;
-		if (i < 0)
-			return Vec3(0, 0, 0);
-	}
-
-	Vec3 e = GetBezierTangent(i, kof);
-	if (e.x < 0.00001f && e.x > -0.00001f && e.y < 0.00001f && e.y > -0.00001f && e.z < 0.00001f && e.z > -0.00001f)
-		return Vec3(0, 0, 0);
-
-	Vec3 n;
-
-	float an1 = m_points[i].angle;
-	float an2 = m_points[i + 1].angle;
-
-	if (-0.00001f > an1 || an1 > 0.00001f || -0.00001f > an2 || an2 > 0.00001f)
-	{
-		float af = kof * 2 - 1.0f;
-		float ed = 1.0f;
-		if (af < 0.0f)
-			ed = -1.0f;
-		af = ed - af;
-		af = af * af * af;
-		af = ed - af;
-		af = (af + 1.0f) / 2;
-		float angle = ((1.0f - af) * an1 + af * an2) * 3.141593f / 180.0f;
-
-		e.Normalize();
-		n = Vec3(0, 0, 1).Cross(e);
-		n = n.GetRotated(e, angle);
-	}
-	else
-		n = Vec3(0, 0, 1).Cross(e);
-
-	if (n.x > 0.00001f || n.x < -0.00001f || n.y > 0.00001f || n.y < -0.00001f || n.z > 0.00001f || n.z < -0.00001f)
-		n.Normalize();
-	return n;
-}
-
-//////////////////////////////////////////////////////////////////////////
-void CSplineObject::BezierCorrection(int index)
-{
-	BezierAnglesCorrection(index - 1);
-	BezierAnglesCorrection(index);
-	BezierAnglesCorrection(index + 1);
-	BezierAnglesCorrection(index - 2);
-	BezierAnglesCorrection(index + 2);
-}
-
-//////////////////////////////////////////////////////////////////////////
-void CSplineObject::BezierAnglesCorrection(int index)
-{
-	int maxindex = GetPointCount() - 1;
-	if (index < 0 || index > maxindex)
-	{
-		return;
-	}
-
-	Vec3& p2 = m_points[index].pos;
-	Vec3& back = m_points[index].back;
-	Vec3& forw = m_points[index].forw;
-
-	if (index == 0)
-	{
-		back = p2;
-		if (maxindex == 1)
-		{
-			Vec3& p3 = m_points[index + 1].pos;
-			forw = p2 + (p3 - p2) / 3;
-		}
-		else if (maxindex > 0)
-		{
-			Vec3& p3 = m_points[index + 1].pos;
-			Vec3& pb3 = m_points[index + 1].back;
-
-			float lenOsn = (pb3 - p2).GetLength();
-			float lenb = (p3 - p2).GetLength();
-
-			forw = p2 + (pb3 - p2) / (lenOsn / lenb * 3);
-		}
-	}
-
-	if (index == maxindex)
-	{
-		forw = p2;
-		if (index > 0)
-		{
-			Vec3& p1 = m_points[index - 1].pos;
-			Vec3& pf1 = m_points[index - 1].forw;
-
-			float lenOsn = (pf1 - p2).GetLength();
-			float lenf = (p1 - p2).GetLength();
-
-			if (lenOsn > 0.000001f && lenf > 0.000001f)
-				back = p2 + (pf1 - p2) / (lenOsn / lenf * 3);
-			else
-				back = p2;
-		}
-	}
-
-	if (1 <= index && index <= maxindex - 1)
-	{
-		Vec3& p1 = m_points[index - 1].pos;
-		Vec3& p3 = m_points[index + 1].pos;
-
-		float lenOsn = (p3 - p1).GetLength();
-		float lenb = (p1 - p2).GetLength();
-		float lenf = (p3 - p2).GetLength();
-
-		back = p2 + (p1 - p3) * (lenb / lenOsn / 3);
-		forw = p2 + (p3 - p1) * (lenf / lenOsn / 3);
 	}
 }
 
@@ -1118,7 +833,7 @@ void CSplineObject::SerializeProperties(Serialization::IArchive& ar, bool bMulti
 		if (num_points > 1)
 		{
 			Serialization::SEditToolButton editButton("");
-			editButton.SetToolClass(RUNTIME_CLASS(CEditSplineObjectTool), "object", this);
+			editButton.SetToolClass(RUNTIME_CLASS(CEditSplineObjectTool), "object", static_cast<ISpline*>(this));
 			ar(editButton, "editspline", "^Edit");
 		}
 
@@ -1363,31 +1078,6 @@ void CSplineObject::DrawJoints(DisplayContext& dc)
 }
 
 //////////////////////////////////////////////////////////////////////////
-int CSplineObject::GetNearestPoint(const Vec3& raySrc, const Vec3& rayDir, float& distance)
-{
-	int index = -1;
-	const float kBigRayLen = 100000.0f;
-	float minDist = FLT_MAX;
-	Vec3 rayLineP1 = raySrc;
-	Vec3 rayLineP2 = raySrc + rayDir * kBigRayLen;
-	Vec3 intPnt;
-	const Matrix34& wtm = GetWorldTM();
-
-	for (int i = 0, n = GetPointCount(); i < n; ++i)
-	{
-		float d = PointToLineDistance(rayLineP1, rayLineP2, wtm.TransformPoint(m_points[i].pos), intPnt);
-		if (d < minDist)
-		{
-			minDist = d;
-			index = i;
-		}
-	}
-
-	distance = minDist;
-	return index;
-}
-
-//////////////////////////////////////////////////////////////////////////
 bool CSplineObject::HitTest(HitContext& hc)
 {
 	// First check if ray intersect our bounding box.
@@ -1508,48 +1198,6 @@ bool CSplineObject::RayToLineDistance(const Vec3& rayLineP1, const Vec3& rayLine
 	return true;
 }
 
-//////////////////////////////////////////////////////////////////////////
-void CSplineObject::GetNearestEdge(const Vec3& raySrc, const Vec3& rayDir, int& p1, int& p2, float& distance, Vec3& intersectPoint)
-{
-	p1 = -1;
-	p2 = -1;
-	const float kBigRayLen = 100000.0f;
-	float minDist = FLT_MAX;
-	Vec3 intPnt;
-	Vec3 rayLineP1 = raySrc;
-	Vec3 rayLineP2 = raySrc + rayDir * kBigRayLen;
-
-	const Matrix34& wtm = GetWorldTM();
-
-	int maxpoint = GetPointCount();
-	if (maxpoint-- >= GetMinPoints())
-	{
-		for (int i = 0, j = 1; i < maxpoint; ++i, ++j)
-		{
-			int kn = 6;
-			for (int k = 0; k < kn; ++k)
-			{
-				Vec3 pi = wtm.TransformPoint(GetBezierPos(i, float(k) / kn));
-				Vec3 pj = wtm.TransformPoint(GetBezierPos(i, float(k) / kn + 1.0f / kn));
-
-				float d = 0;
-				if (!RayToLineDistance(rayLineP1, rayLineP2, pi, pj, d, intPnt))
-					continue;
-
-				if (d < minDist)
-				{
-					minDist = d;
-					p1 = i;
-					p2 = j;
-					intersectPoint = intPnt;
-				}
-			}
-		}
-	}
-
-	distance = minDist;
-}
-
 void CSplineObject::OnContextMenu(CPopupMenuItem* menu)
 {
 	menu->Add("Edit", functor(*this, &CSplineObject::EditSpline));
@@ -1576,7 +1224,7 @@ void CSplineObject::Serialize(CObjectArchive& ar)
 			for (int i = 0, n = points->getChildCount(); i < n; ++i)
 			{
 				XmlNodeRef pnt = points->getChild(i);
-				CSplinePoint pt;
+				SPoint pt;
 				pnt->getAttr("Pos", pt.pos);
 				pnt->getAttr("Back", pt.back);
 				pnt->getAttr("Forw", pt.forw);
@@ -1687,7 +1335,7 @@ void CSplineObject::EditSpline()
 	{
 		pEditTool = new CEditSplineObjectTool;
 		GetIEditorImpl()->SetEditTool(pEditTool);
-		pEditTool->SetUserData("object", this);
+		pEditTool->SetUserData("object", static_cast<ISpline*>(this));
 	}
 }
 
