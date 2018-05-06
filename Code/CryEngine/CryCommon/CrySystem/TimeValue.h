@@ -11,8 +11,8 @@ public:
 	void GetMemoryUsage(class ICrySizer* pSizer) const { /*nothing*/ }
 
 	constexpr CTimeValue() : m_value(0) {}
-	constexpr CTimeValue(const float fSeconds) : m_value(static_cast<int64>(fSeconds) * TIMEVALUE_PRECISION) {}
-	constexpr CTimeValue(const double fSeconds) : m_value(static_cast<int64>(fSeconds) * TIMEVALUE_PRECISION) {}
+	constexpr CTimeValue(const float fSeconds) : m_value(static_cast<int64>(fSeconds * TIMEVALUE_PRECISION)) {}
+	constexpr CTimeValue(const double fSeconds) : m_value(static_cast<int64>(fSeconds * TIMEVALUE_PRECISION)) {}
 
 	//! \param inllValue Positive negative, absolute or relative in 1 second= TIMEVALUE_PRECISION units.
 	constexpr CTimeValue(const int64 inllValue) : m_value(inllValue) {}
@@ -38,7 +38,7 @@ public:
 	//! Call this on the endTime object: endTime.GetDifferenceInSeconds( startTime );
 	float GetDifferenceInSeconds(const CTimeValue& startTime) const
 	{
-		return (m_value - startTime.m_value) * (1.f / TIMEVALUE_PRECISION);
+		return (*this - startTime).GetSeconds();
 	}
 
 	void SetSeconds(const float infSec)
