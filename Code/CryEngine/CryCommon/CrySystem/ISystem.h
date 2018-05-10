@@ -983,7 +983,7 @@ struct SSystemGlobalEnvironment
 	//! This way the compiler can strip out code for consoles.
 	ILINE const bool IsEditor() const
 	{
-#if CRY_PLATFORM_DESKTOP
+#if CRY_PLATFORM_DESKTOP && !defined(RELEASE)
 		return bEditor;
 #else
 		return false;
@@ -992,7 +992,7 @@ struct SSystemGlobalEnvironment
 
 	ILINE const bool IsEditorGameMode() const
 	{
-#if CRY_PLATFORM_DESKTOP
+#if CRY_PLATFORM_DESKTOP && !defined(RELEASE)
 		return bEditorGameMode;
 #else
 		return false;
@@ -1001,7 +1001,7 @@ struct SSystemGlobalEnvironment
 
 	ILINE const bool IsEditorSimulationMode() const
 	{
-#if CRY_PLATFORM_DESKTOP
+#if CRY_PLATFORM_DESKTOP && !defined(RELEASE)
 		return bEditorSimulationMode;
 #else
 		return false;
@@ -1010,7 +1010,7 @@ struct SSystemGlobalEnvironment
 
 	ILINE const bool IsGameOrSimulation() const
 	{
-#if CRY_PLATFORM_DESKTOP
+#if CRY_PLATFORM_DESKTOP && !defined(RELEASE)
 		return !bEditor || bEditorGameMode || bEditorSimulationMode;
 #else
 		return true;
@@ -1019,7 +1019,7 @@ struct SSystemGlobalEnvironment
 
 	ILINE const bool IsEditing() const
 	{
-#if CRY_PLATFORM_DESKTOP
+#if CRY_PLATFORM_DESKTOP && !defined(RELEASE)
 		return bEditor && !bEditorGameMode;
 #else
 		return false;
