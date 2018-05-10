@@ -42,6 +42,7 @@
 #include "ThreadingUtils.h"
 #include "EditorStyleHelper.h"
 #include "Util/FileUtil.h"
+#include <AssetSystem/Browser/AssetBrowserDialog.h>
 
 // CryCommon
 #include <CrySandbox/ScopedVariableSetter.h>
@@ -664,18 +665,30 @@ bool CLevelEditor::OnOpen()
 	{
 		return true;
 	}
-	COpenLevelDialog levelOpenDialog;
+
+	CAssetBrowserDialog dialog({ "Level" }, CAssetBrowserDialog::Mode::OpenSingleAsset);
 	QString lastLoadedLevelName(GetIEditorImpl()->GetDocument()->GetLastLoadedLevelName());
 	if (!lastLoadedLevelName.isEmpty())
 	{
-		levelOpenDialog.SelectLevelFile(lastLoadedLevelName);
+		CAssetManager* const pManager = CAssetManager::GetInstance();
+
+		const CAsset* pAsset = pManager->FindAssetForFile(lastLoadedLevelName.toStdString().c_str());
+
+		if (pAsset)
+		{
+			dialog.SelectAsset(*pAsset);
+		}
 	}
-	if (levelOpenDialog.exec() == QDialog::Accepted)
+
+	if (dialog.Execute())
 	{
-		auto filename = levelOpenDialog.GetAcceptedLevelFile().toStdString();//will be relative to working directory/project root
-		CCryEditApp::GetInstance()->DiscardLevelChanges();
-		CCryEditApp::GetInstance()->LoadLevel(filename.c_str());
+		if (CAsset* pSelectedAsset = dialog.GetSelectedAsset())
+		{
+			CCryEditApp::GetInstance()->DiscardLevelChanges();
+			CCryEditApp::GetInstance()->LoadLevel(pSelectedAsset->GetFile(0));
+		}
 	}
+
 	return true;
 }
 
