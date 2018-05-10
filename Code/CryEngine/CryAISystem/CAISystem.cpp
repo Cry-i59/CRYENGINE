@@ -328,12 +328,15 @@ bool CAISystem::Init()
 	// ensure the available communications are ready before the AI scripts get loaded (they in turn might load GoalPipes and other stuff that depend on communication data)
 	gAIEnv.pCommunicationManager->LoadConfigurationAndScanRootFolder("Scripts/AI/Communication");
 
-	if (!m_pScriptAI)
+	if (!m_pScriptAI && gEnv->pScriptSystem != nullptr)
 		m_pScriptAI = new CScriptBind_AI();
 
 	SubSystemCall(Init());
 
-	m_pScriptAI->RunStartupScript(false);
+	if (m_pScriptAI != nullptr)
+	{
+		m_pScriptAI->RunStartupScript(false);
+	}
 
 	Reset(IAISystem::RESET_INTERNAL);
 
@@ -461,16 +464,16 @@ bool CAISystem::Init()
 bool CAISystem::CompleteInit()
 {
 	SubSystemCall(PostInit());
-	
-	IScriptSystem* pSS = gEnv->pScriptSystem;
-	CRY_ASSERT(pSS);
 
-	SmartScriptTable pScriptAI;
-	if (pSS->GetGlobalValue("AI", pScriptAI))
+	if (IScriptSystem* pSS = gEnv->pScriptSystem)
 	{
-		if (pScriptAI->HaveValue("AIPostInit"))
+		SmartScriptTable pScriptAI;
+		if (pSS->GetGlobalValue("AI", pScriptAI))
 		{
-			Script::CallMethod(pScriptAI, "AIPostInit");
+			if (pScriptAI->HaveValue("AIPostInit"))
+			{
+				Script::CallMethod(pScriptAI, "AIPostInit");
+			}
 		}
 	}
 	return true;
@@ -5956,11 +5959,14 @@ void CAISystem::DummyFunctionNumberOne()
 
 void CAISystem::CallReloadTPSQueriesScript()
 {
-	const HSCRIPTFUNCTION reloadTPS = gEnv->pScriptSystem->GetFunctionPtr("ReloadTPS");
-
-	if (reloadTPS)
+	if (gEnv->pScriptSystem != nullptr)
 	{
-		gEnv->pScriptSystem->BeginCall(reloadTPS);
-		gEnv->pScriptSystem->EndCall();
+		const HSCRIPTFUNCTION reloadTPS = gEnv->pScriptSystem->GetFunctionPtr("ReloadTPS");
+
+		if (reloadTPS)
+		{
+			gEnv->pScriptSystem->BeginCall(reloadTPS);
+			gEnv->pScriptSystem->EndCall();
+		}
 	}
 }

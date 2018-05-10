@@ -130,7 +130,7 @@ void CAIManager::Init(ISystem* system)
 	if (!m_pAISystem)
 		return;
 
-	if (!m_pScriptAI)
+	if (!m_pScriptAI && gEnv->pScriptSystem != nullptr)
 		m_pScriptAI = new CScriptBind_AI(system);
 
 	// (MATT) Reset the AI to allow it to update its configuration, with respect to ai_CompatibilityMode cvar {2009/06/25}
@@ -435,14 +435,15 @@ private:
 //////////////////////////////////////////////////////////////////////////
 void CAIManager::EnumAnchorActions()
 {
-	IScriptSystem* pScriptSystem = GetIEditorImpl()->GetSystem()->GetIScriptSystem();
-
-	SmartScriptTable pAIAnchorTable(pScriptSystem, true);
-	if (pScriptSystem->GetGlobalValue("AIAnchorTable", pAIAnchorTable))
+	if (IScriptSystem* pScriptSystem = GetIEditorImpl()->GetSystem()->GetIScriptSystem())
 	{
-		CAIAnchorDump anchorDump(pAIAnchorTable);
-		pAIAnchorTable->Dump(&anchorDump);
-		m_anchorActions = anchorDump.actions;
+		SmartScriptTable pAIAnchorTable(pScriptSystem, true);
+		if (pScriptSystem->GetGlobalValue("AIAnchorTable", pAIAnchorTable))
+		{
+			CAIAnchorDump anchorDump(pAIAnchorTable);
+			pAIAnchorTable->Dump(&anchorDump);
+			m_anchorActions = anchorDump.actions;
+		}
 	}
 }
 

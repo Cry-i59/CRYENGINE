@@ -5103,7 +5103,7 @@ void CSystem::CreateSystemVars()
 
 	m_svAISystem = REGISTER_INT("sv_AISystem", 1, VF_REQUIRE_APP_RESTART, "Load and use the AI system on the server");
 
-	m_clAISystem = REGISTER_INT("cl_AISystem", 0, VF_REQUIRE_APP_RESTART, "Load and use the AI system on the client");
+	m_clAISystem = REGISTER_INT("cl_AISystem", 1, VF_REQUIRE_APP_RESTART, "Load and use the AI system on the client");
 
 	m_sys_script_system = REGISTER_INT("sys_script_system", 1, VF_REQUIRE_APP_RESTART, "Load and use the Lua script system");
 	

@@ -67,18 +67,21 @@ struct BehaviorExplorer
 	BehaviorExplorer(const char* _createFuncName)
 		: createFuncName(_createFuncName)
 	{
-		globalBehaviors.Create(gEnv->pScriptSystem, false);
+		if (gEnv->pScriptSystem != nullptr)
+		{
+			globalBehaviors.Create(gEnv->pScriptSystem, false);
 
-		string fakeCreateCode =
-		  "local name, baseName = select(1, ...)\n"
-		  "if (type(baseName) ~= \"string\") then baseName = true end\n"
-		  "__DiscoveredBehavior[name] = baseName\n"
-		  "return {}\n";
+			string fakeCreateCode =
+				"local name, baseName = select(1, ...)\n"
+				"if (type(baseName) ~= \"string\") then baseName = true end\n"
+				"__DiscoveredBehavior[name] = baseName\n"
+				"return {}\n";
 
-		fakeCreateBehavior = SmartScriptFunction(gEnv->pScriptSystem, gEnv->pScriptSystem->CompileBuffer(fakeCreateCode,
-		                                                                                                 strlen(fakeCreateCode), "Fake CreateBehaviorCode"));
+			fakeCreateBehavior = SmartScriptFunction(gEnv->pScriptSystem, gEnv->pScriptSystem->CompileBuffer(fakeCreateCode,
+				strlen(fakeCreateCode), "Fake CreateBehaviorCode"));
 
-		assert(fakeCreateBehavior != 0);
+			assert(fakeCreateBehavior != 0);
+		}
 	}
 
 	struct BehaviorInfo
