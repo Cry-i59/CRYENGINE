@@ -5157,6 +5157,8 @@ public:
 
 		CEntityObject* pObject = static_cast<CEntityObject*>(GetIEditor()->GetObjectManager()->FindObject(m_guid));
 		IEntity* pEntity = pObject->GetIEntity();
+		if (pEntity == nullptr)
+			return;
 
 		CacheProperties(pObject, m_cachedPropertiesRedo);
 
@@ -5175,6 +5177,8 @@ public:
 
 		CEntityObject* pObject = static_cast<CEntityObject*>(GetIEditor()->GetObjectManager()->FindObject(m_guid));
 		IEntity* pEntity = pObject->GetIEntity();
+		if (pEntity == nullptr)
+			return;
 
 		for (const SCachedComponent& cachedComponent : m_cachedPropertiesRedo)
 		{
@@ -5203,6 +5207,8 @@ protected:
 	void CacheProperties(CEntityObject* pObject, std::vector<SCachedComponent>& destinationVector)
 	{
 		IEntity* pEntity = pObject->GetIEntity();
+		if (pEntity == nullptr)
+			return;
 
 		destinationVector.reserve(pEntity->GetComponentsCount());
 
