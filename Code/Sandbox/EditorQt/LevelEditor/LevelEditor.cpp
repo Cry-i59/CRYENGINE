@@ -685,7 +685,7 @@ bool CLevelEditor::OnOpen()
 		if (CAsset* pSelectedAsset = dialog.GetSelectedAsset())
 		{
 			CCryEditApp::GetInstance()->DiscardLevelChanges();
-			CCryEditApp::GetInstance()->LoadLevel(pSelectedAsset->GetFile(0));
+			CCryEditApp::GetInstance()->LoadLevel(PathUtil::Make(PathUtil::GetGameProjectAssetsPath(), pSelectedAsset->GetFile(0)));
 		}
 	}
 
