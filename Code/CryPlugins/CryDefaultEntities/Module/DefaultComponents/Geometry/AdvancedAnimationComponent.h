@@ -145,7 +145,12 @@ public:
 
 		const int priority = 0;
 		m_pActiveAction = new TAction<SAnimationContext>(priority, fragmentId);
-		m_pActionController->Queue(*m_pActiveAction);
+		QueueAction(*m_pActiveAction);
+	}
+
+	virtual void QueueAction(IAction& action)
+	{
+		m_pActionController->Queue(action);
 	}
 
 	// TODO: Expose resource selector for tags
