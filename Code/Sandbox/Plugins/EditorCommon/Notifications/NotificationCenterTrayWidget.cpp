@@ -23,7 +23,7 @@
 #include <QVBoxLayout>
 #include <QEvent>
 
-REGISTER_TRAY_AREA_WIDGET(CNotificationCenterTrayWidget, 10)
+//REGISTER_TRAY_AREA_WIDGET(CNotificationCenterTrayWidget, 10)
 
 class CNotificationPopupManager : public QObject
 {
