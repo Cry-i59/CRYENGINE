@@ -790,10 +790,10 @@ static void OnBnClickedAddComponent()
 			return QVariant();
 		}
 
-		virtual QString  GetToolTip() const override { return m_tooltip; }
-		virtual const QIcon* GetColumnIcon(int32 columnIndex) const override { return &m_icon; }
-		virtual const CAbstractDictionaryEntry* GetParentEntry() const override { return m_pParentEntry; }
-		virtual bool IsEnabled() const override { return m_bEnabled; }
+		virtual QString                         GetToolTip() const override                     { return m_tooltip; }
+		virtual const QIcon*                    GetColumnIcon(int32 columnIndex) const override { return &m_icon; }
+		virtual const CAbstractDictionaryEntry* GetParentEntry() const override                 { return m_pParentEntry; }
+		virtual bool                            IsEnabled() const override                      { return m_bEnabled; }
 		// ~CAbstractDictionaryEntry
 
 		const Schematyc::IEnvComponent& GetComponent() const { return m_component; }
@@ -1005,7 +1005,7 @@ static void OnBnClickedAddComponent()
 	}
 
 	std::unique_ptr<CModalPopupDictionary> pDictionary = stl::make_unique<CModalPopupDictionary>("Entity::AddComponent", dictionary);
-	pDictionary->ExecAt(QCursor::pos(), QPopupWidget::TopRight);
+	pDictionary->ExecAt(QCursor::pos());
 
 	if (CComponentDictionaryEntry* pSelectedComponentEntry = static_cast<CComponentDictionaryEntry*>(pDictionary->GetResult()))
 	{
@@ -1454,7 +1454,7 @@ void CEntityObject::GetLocalBounds(AABB& box)
 		for (int i = 0, n = m_pEntity->GetSlotCount(); i < n; ++i)
 		{
 			AABB localSlotBounds;
-			
+
 			if (IStatObj* pStatObj = m_pEntity->GetStatObj(i))
 			{
 				localSlotBounds = pStatObj->GetAABB();
@@ -1480,11 +1480,11 @@ void CEntityObject::GetLocalBounds(AABB& box)
 			{
 				continue;
 			}
-			
+
 			localSlotBounds.SetTransformedAABB(m_pEntity->GetSlotLocalTM(i, false), localSlotBounds);
 			box.Add(localSlotBounds);
 		}
-}
+	}
 }
 
 void CEntityObject::SetModified(bool boModifiedTransformOnly, bool bNotifyObjectManager)

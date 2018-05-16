@@ -171,12 +171,12 @@ public:
 
 	TagID GetTagId(const char* szTagName) const
 	{
-		return m_pControllerDefinition->m_tags.Find(szTagName);
+		return m_pControllerDefinition != nullptr ? m_pControllerDefinition->m_tags.Find(szTagName) : TAG_ID_INVALID;
 	}
 
 	FragmentID GetFragmentId(const char* szFragmentName) const
 	{
-		return m_pControllerDefinition->m_fragmentIDs.Find(szFragmentName);
+		return m_pControllerDefinition != nullptr ? m_pControllerDefinition->m_fragmentIDs.Find(szFragmentName) : FRAGMENT_ID_INVALID;
 	}
 
 	virtual void SetTagWithId(TagID id, bool bSet)
