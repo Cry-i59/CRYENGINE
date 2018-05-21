@@ -152,6 +152,11 @@ public:
 	{
 		m_pActionController->Queue(action);
 	}
+	
+	virtual void QueueCustomFragment(IAction& action)
+	{
+		m_pActionController->Queue(action);
+	}
 
 	// TODO: Expose resource selector for tags
 	virtual void SetTag(const Schematyc::CSharedString& tagName, bool bSet)
