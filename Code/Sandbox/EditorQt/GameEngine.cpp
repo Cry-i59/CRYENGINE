@@ -1487,13 +1487,10 @@ void CGameEngine::Update()
 
 		CEnumFlags<ESystemUpdateFlags> updateFlags = ESYSUPDATE_EDITOR;
 
-		CRuler* pRuler = GetIEditorImpl()->GetRuler();
-		const bool bRulerNeedsUpdate = (pRuler && pRuler->HasQueuedPaths());
-
 		if (!m_bSimulationMode)
 			updateFlags |= ESYSUPDATE_IGNORE_PHYSICS;
 
-		if (!m_bSimulationModeAI && !bRulerNeedsUpdate)
+		if (!m_bSimulationModeAI)
 			updateFlags |= ESYSUPDATE_IGNORE_AI;
 
 		bool bUpdateAIPhysics = GetSimulationMode() || m_bUpdateFlowSystem;

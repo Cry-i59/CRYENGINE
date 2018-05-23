@@ -28,7 +28,6 @@ enum class ENavigationUpdateType
 // forward declarations.
 class CAIGoalLibrary;
 class CAIBehaviorLibrary;
-class CScriptBind_AI;
 
 class CProgressNotification;
 
@@ -292,7 +291,10 @@ private:
 	static const char* GetNavigationWorldMonitorStateName(const ENavigationWorldMonitorState state);
 
 	void               PauseMNMRegeneration();
-	void               ResumeMNMRegeneration();
+	void               ResumeMNMRegeneration(bool updateChangedVolumes = true);
+
+	// Resume navigation regeneration updating but without updating the changes that were made to NavMesh areas, when the navigation generation was disabled.
+	void               ResumeMNMRegenerationWithoutUpdatingPengingNavMeshChanges();
 
 	MapTemplates                        m_mapTemplates;
 
@@ -305,8 +307,6 @@ private:
 	friend struct CAIAnchorDump;
 	typedef std::map<string, int> AnchorActions;
 	AnchorActions   m_anchorActions;
-
-	CScriptBind_AI* m_pScriptAI;
 
 	typedef std::map<string, AgentPathfindingProperties> PFPropertiesMap;
 	PFPropertiesMap              m_mapPFProperties;
