@@ -666,11 +666,6 @@ void CD3DStereoRenderer::RenderScene(const SStereoRenderContext &context)
 	// Wait to begin frame, might block
 	PrepareFrame();
 
-	// Inject new tracking data, if possible, as late as possible, just before beginning the rendering pipeline
-	const auto& trackingState = TryGetHmdCameraAsync(context);
-	if (trackingState)
-		camera.SetMatrix(trackingState.value());
-
 	const std::array<CCamera, 2> cameras =
 	{
 		{
@@ -764,6 +759,49 @@ void CD3DStereoRenderer::RenderScene(const SStereoRenderContext &context)
 
 	m_previousCameras = cameras;
 	m_frameRendered = true;
+}
+
+void CD3DStereoRenderer::TryInjectHmdCameraAsync(CRenderView* pRenderView)
+{
+	auto hmd_post_inject_camera = gEnv->pConsole->GetCVar("hmd_post_inject_camera");
+	if (!hmd_post_inject_camera || !hmd_post_inject_camera->GetIVal())
+		return;
+
+	IHmdManager* pHmdManager = gEnv->pSystem->GetHmdManager();
+	if (!pHmdManager)
+		return;
+
+	IHmdDevice* pHmdDevice = pHmdManager->GetHmdDevice();
+	if (!pHmdDevice)
+		return;
+
+	const stl::optional<std::pair<Quat, Vec3>>& orientation = pHmdDevice->GetOrientationForLateCameraInjection();
+	if (!orientation)
+		return;
+
+	// new up to date matrix is received, use it for current frame
+	CCamera currentCamera = pRenderView->GetCamera(pRenderView->GetCurrentEye());
+	QuatT cameraOrientation(orientation.value().first, orientation.value().second);
+
+	pHmdDevice->RequestAsyncCameraUpdate(0, cameraOrientation.q, cameraOrientation.t);
+	currentCamera.SetMatrix(Matrix34(cameraOrientation));
+
+	uint32 renderingFlags = pRenderView->GetShaderRenderingFlags();
+
+	if ((renderingFlags & (SHDF_STEREO_LEFT_EYE | SHDF_STEREO_RIGHT_EYE)) == 0) // non-stereo case
+		renderingFlags |= SHDF_STEREO_LEFT_EYE;
+
+	for (CCamera::EEye eye = CCamera::eEye_Left; eye != CCamera::eEye_eCount; eye = CCamera::EEye(eye + 1))
+	{
+		uint32 currentEyeFlag = eye == CCamera::eEye_Left ? SHDF_STEREO_LEFT_EYE : SHDF_STEREO_RIGHT_EYE;
+
+		if (renderingFlags & currentEyeFlag)
+		{
+			CCamera newCamera = PrepareCamera(eye, currentCamera);
+
+			pRenderView->SetCameras(&newCamera, 1);
+		}
+	}
 }
 
 void CD3DStereoRenderer::SubmitFrameToHMD()
@@ -1162,26 +1200,6 @@ void CD3DStereoRenderer::ReleaseDevice()
 	DisableStereo();
 	m_mode = EStereoMode::STEREO_MODE_NO_STEREO;
 	m_output = EStereoOutput::STEREO_OUTPUT_STANDARD;
-}
-
-//////////////////////////////////////////////////////////////////////////
-stl::optional<Matrix34> CD3DStereoRenderer::TryGetHmdCameraAsync(const SStereoRenderContext &context)
-{
-	auto hmd_post_inject_camera = gEnv->pConsole->GetCVar("hmd_post_inject_camera");
-	if (!hmd_post_inject_camera || !hmd_post_inject_camera->GetIVal() || !context.orientationForLateCameraInjection)
-		return stl::nullopt;
-
-	IHmdManager* pHmdManager = gEnv->pSystem->GetHmdManager();
-	if (!pHmdManager)
-		return stl::nullopt;
-	IHmdDevice* pHmdDevice = pHmdManager->GetHmdDevice();
-	if (!pHmdDevice)
-		return stl::nullopt;
-
-	// Query async tracking state
-	return pHmdDevice->RequestAsyncCameraUpdate(context.frameId, 
-		context.orientationForLateCameraInjection.value().first, 
-		context.orientationForLateCameraInjection.value().second);
 }
 
 //////////////////////////////////////////////////////////////////////////

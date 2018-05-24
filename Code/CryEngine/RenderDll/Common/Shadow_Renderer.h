@@ -454,11 +454,6 @@ public:
 		return bOmniDirectionalShadow ? OMNI_SIDES_NUM : 1;
 	}
 
-	const CCamera& GetCamera(int side) const
-	{
-		return bOmniDirectionalShadow ? FrustumPlanes[side] : gEnv->p3DEngine->GetRenderingCamera();
-	}
-
 	void GetMemoryUsage(ICrySizer* pSizer) const;
 
 	void SortRenderItemsForFrustumAsync(int side, struct SRendItem* pFirst, size_t nNumRendItems);

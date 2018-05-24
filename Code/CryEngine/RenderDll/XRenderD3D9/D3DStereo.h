@@ -175,6 +175,8 @@ public:
 	Vec2_tpl<int>      GetOverlayResolution() const override final { return { m_headlockedQuadCamera.GetViewSurfaceX(), m_headlockedQuadCamera.GetViewSurfaceZ() }; }
 	// ~IStereoRenderer Interface
 
+	void TryInjectHmdCameraAsync(CRenderView* pRenderView);
+
 private:
 	enum DriverType
 	{
@@ -233,10 +235,6 @@ private:
 	bool          IsDriver(DriverType driver) { return m_device == EStereoDevice::STEREO_DEVICE_DRIVER && m_driver == driver; }
 
 	IHmdRenderer* CreateHmdRenderer(struct IHmdDevice& device);
-
-	// If HMD device present this will read latest tracking data.
-	// This is called from the render thread
-	stl::optional<Matrix34> TryGetHmdCameraAsync(const SStereoRenderContext &context);
 
 	void          RecreateDisplayContext(std::pair<std::shared_ptr<CCustomRenderDisplayContext>, SDisplayContextKey> &target, const ColorF &clearColor, std::vector<_smart_ptr<CTexture>> &&swapChain);
 	void          CreateEyeDisplayContext(CCamera::EEye eEye, std::vector<_smart_ptr<CTexture>> &&swapChain);

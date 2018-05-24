@@ -180,8 +180,7 @@ void CStandardGraphicsPipeline::Update(CRenderView* pRenderView, EShaderRenderin
 	CGraphicsPipeline::SetCurrentRenderView(pRenderView);
 
 	m_numInvalidDrawcalls = 0;
-	GenerateMainViewConstantBuffer();
-
+	
 	m_renderingFlags = renderingFlags;
 	CGraphicsPipeline::Update(pRenderView, renderingFlags);
 
@@ -773,6 +772,10 @@ void CStandardGraphicsPipeline::Execute()
 	PROFILE_LABEL_PUSH("GRAPHICS_PIPELINE");
 	
 	m_renderPassScheduler.SetEnabled(true);
+
+	gcpRendD3D->GetS3DRend().TryInjectHmdCameraAsync(pRenderView);
+
+	GenerateMainViewConstantBuffer();
 
 	if (pRenderView->GetCurrentEye() != CCamera::eEye_Right)
 	{

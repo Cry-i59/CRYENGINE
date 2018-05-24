@@ -39,8 +39,8 @@ void CParticleComponentRuntime::UpdateParticles(SUpdateContext& context, CDevice
 	m_parameters->currentTime += context.deltaTime;
 	m_parameters->viewProjection = context.pRenderView->GetViewInfo(CCamera::eEye_Left).cameraProjMatrix;
 	m_parameters->sortMode = m_params.sortMode;
-
-	const CCamera& cam = gEnv->p3DEngine->GetRenderingCamera();
+	
+	const CCamera& cam = context.pRenderView->GetCamera(context.pRenderView->GetCurrentEye());
 	float zn = cam.GetNearPlane();
 	float zf = cam.GetFarPlane();
 	m_parameters->farToNearDistance = zf - zn;

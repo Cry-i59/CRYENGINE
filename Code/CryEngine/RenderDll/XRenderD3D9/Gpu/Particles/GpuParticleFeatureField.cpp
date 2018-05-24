@@ -94,7 +94,7 @@ void CFeatureFieldPixelSize::InitParticles(const SUpdateContext& context)
 
 void CFeatureFieldPixelSize::Update(const gpu_pfx2::SUpdateContext& context, CDeviceCommandListRef RESTRICT_REFERENCE commandList)
 {
-	const CCamera& camera = gEnv->p3DEngine->GetRenderingCamera();
+	const CCamera& camera = context.pRenderView->GetCamera(context.pRenderView->GetCurrentEye());
 	m_internalParameters->projectionPlane = Vec4(camera.GetViewdir(), -camera.GetPosition().dot(camera.GetViewdir()));
 
 	const float height = float(CRendererResources::s_renderHeight);
